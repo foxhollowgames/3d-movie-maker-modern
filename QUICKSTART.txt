@@ -1,0 +1,35 @@
+3D Movie Maker Modern - Fox Hollow Games distribution
+Based on 3DMMEx 0.7.0, 3DMMForever, and Microsoft 3D Movie Maker.
+This is a community project. Microsoft does not sponsor this distribution.
+
+WINDOWS 10 / 11
+1. Extract the complete ZIP to a folder that you can write to.
+2. Open "Start 3D Movie Maker.cmd" or "3dmovie.exe".
+3. Follow the on-screen introduction to enter the movie studio.
+
+Use the x64 download for Intel or AMD computers.
+Use the ARM64 download for Windows on ARM computers.
+Keep the "Microsoft Kids" folder beside the executable.
+No original CD, installer, or administrator access is required.
+
+SAMPLE MOVIES
+Open a movie from "Microsoft Kids/Users/McZee" in the application.
+Use the Play control to play it.
+Save your own movies in a writable folder, such as Documents.
+
+macOS (APPLE SILICON)
+Extract the ZIP. Open "3D Movie Maker.app".
+The application is not notarized. macOS can block its first launch.
+Use the macOS Privacy & Security controls to review the blocked app.
+Cutscene playback is not implemented in the upstream macOS version.
+Alt/Option-Enter switches the SDL version between windowed and fullscreen mode.
+
+LINUX
+Build instructions are in README.md. No portable Linux download is supplied.
+
+HELP
+https://github.com/foxhollowgames/3d-movie-maker-modern/issues
+Include your operating system, CPU architecture, release version, and steps.
+
+LICENSES
+See LICENSE and THIRD_PARTY_LICENSES.txt in this folder.

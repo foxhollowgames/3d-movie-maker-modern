@@ -181,7 +181,7 @@ elseif("${3DMM_BRENDER_LIBRARY}" STREQUAL "Source")
     FetchContent_Declare(
         3DMM-BRender
         GIT_REPOSITORY https://github.com/benstone/3DMM-BRender
-        GIT_TAG blazin
+        GIT_TAG ead3840533467be7d089091fd2e3959a890c84e0
     )
 
     set(BRENDER_ASAN OFF)
@@ -215,7 +215,7 @@ elseif("${3DMM_AUDIOMAN_LIBRARY}" STREQUAL "Decompilation")
     FetchContent_Declare(
         AudioManDecomp
         GIT_REPOSITORY https://github.com/benstone/audioman-decomp
-        GIT_TAG main
+        GIT_TAG 49a4fad1c199a6e42967d6e90bea852cf206ccee
     )
 
     set(AUDIOMAN_BUILD_DEMO_APPS OFF)
@@ -258,9 +258,15 @@ add_subdirectory(src)
 # Add documentation to install package
 install(
     FILES
+        ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE
+        ${CMAKE_CURRENT_SOURCE_DIR}/QUICKSTART.txt
         ${CMAKE_CURRENT_SOURCE_DIR}/THIRD_PARTY_LICENSES.txt
     DESTINATION .
 )
+
+if(WIN32)
+    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/scripts/Start 3D Movie Maker.cmd" DESTINATION .)
+endif()
 
 # CPack must be included *last*, which is antithetical to how most CMake
 # Modules work. We can set all variables for all packaging regardless of

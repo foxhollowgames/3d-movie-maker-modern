@@ -1,114 +1,103 @@
-# 3DMMEx
+# 3D Movie Maker Modern
 
-3DMMEx is a source port of [Microsoft 3D Movie Maker](https://github.com/microsoft/Microsoft-3D-Movie-Maker) that aims to preserve the classic 3D Movie Maker experience while adding minor enhancements for an improved user experience.
+**Play the classic 3D Movie Maker on modern computers.**
 
-3DMMEx builds upon the amazing work of the [3DMMForever](https://github.com/foone/3DMMForever) project.
+[Download the latest release](https://github.com/foxhollowgames/3d-movie-maker-modern/releases/latest)
 
-## Features
+This Fox Hollow Games distribution builds on [3DMMEx](https://github.com/benstone/3DMMEx),
+[3DMMForever](https://github.com/foone/3DMMForever), and the
+[Microsoft source release](https://github.com/microsoft/Microsoft-3D-Movie-Maker).
+The community port provides modern compiler support, 64-bit support, and improved input and audio handling.
+The original scenes, characters, sounds, tutorials, and sample movies are included.
 
-* Cross-platform support
-  * SDL2 graphics/input support
-  * Linux and macOS platform support
-* Portability improvements
-  * Supports compiling with Visual Studio 2022, Clang and GCC
-  * 64-bit support: supports compiling for x64 and ARM64
-  * Inline assembly language code replaced with portable C++
-  * Unit tests
-* Usability improvements
-  * Improved mouse input handling
-  * New keyboard shortcuts for scrolling in browser dialogs
-  * High-quality sound import
+## Play on Windows
 
-## Build
+1. Download `3D-Movie-Maker-Modern-Windows-x64.zip` for an Intel or AMD computer.
+   Use the `Windows-ARM64` ZIP for a Windows on ARM computer.
+2. Extract the complete ZIP to a writable folder.
+3. Open `Start 3D Movie Maker.cmd` or `3dmovie.exe`.
+4. Enter the studio through the introduction.
+5. Open a sample movie from `Microsoft Kids/Users/McZee` and select Play.
 
-### Requirements
+Windows 10 and Windows 11 are the intended Windows targets.
+No original CD, administrator access, or installation is required.
+Keep the `Microsoft Kids` folder beside the executable.
+Save your movies in a writable folder, such as Documents.
 
-* CMake 3.28+
-* Ninja build
-* Windows:
-  * Visual Studio 2022
-    * Desktop development with C++ workload
-    * Clang (optional)
-* Linux:
-  * GCC
-  * Development libraries for SDL2, SDL2_ttf, gstreamer, GTK3, iconv and Fontconfig
-  * Zenity (optional: used for dialog boxes)
-  * [Comic Sans MS font](https://corefonts.sourceforge.net/) (optional but strongly recommended!)
-  * gstreamer
-  * Installing dependencies:
-    * Ubuntu: `sudo apt install g++ cmake ninja-build libsdl2-dev libsdl2-ttf-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgtk-3-dev libfontconfig-dev zenity`
-* macOS:
-  * Xcode tools
-  * Development libraries for fontconfig and FluidSynth
-  * Installing dependencies:
-    * `brew install fontconfig fluidsynth`
+## Other systems
 
-### Building
+- **macOS on Apple Silicon:** Extract the `macOS-ARM64` ZIP and open `3D Movie Maker.app`.
+  The application is not notarized. macOS can block its first launch.
+  Cutscene playback is not implemented upstream. Movie creation and sample movies use the SDL port.
+- **Linux:** Build from source with the instructions below. CI builds and tests Linux, but no portable Linux package is supplied.
+- **Intel Macs:** No prebuilt download is supplied or tested by this distribution.
 
-Use CMake to build the project. The project includes a CMakePresets.json file that specifies [build presets](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html).
+The classic interface retains its original 640 by 480 layout.
+The SDL version supports Alt/Option-Enter to switch fullscreen mode.
 
-#### Building on Windows
+## Build from source
 
-* Open the Developer Command Prompt for Visual Studio 2022 (or use a tool such as [VCVars](https://github.com/bruxisma/VCVars) to add the build tools to your path)
-* Run `cmake --preset <preset-name>`:
-  * x86 Debug build: `x86-msvc-debug`
-    * Debug builds are recommended for local development and testing, as they have additional runtime checking that helps to identify bugs.
-  * x86 Release build: `x86-msvc-relwithdebinfo`
-  * There are additional presets for x64 builds and compiling with Clang instead of the Visual C++ compiler
-* Run `cmake --build build\<preset-name> --target install`
-  * The `--target install` is optional but recommended. This will create a directory `dist\<preset-name>` with the directory layout required for 3DMM to run.
-  * Kauai development tools (eg. Chelp, Ched) are not built by default. You can build them by building the `tools` target.
-* To run tests, run `ctest --test-dir build\<preset-name>`
-* To build a release package, run `cmake --build build\<preset-name> --target dist`
-  * A ZIP archive containing a portable install is created in the build directory.
-  * If WiX is installed, an MSI package is also created.
+Use Git, CMake 3.28 or later, and Ninja. The first configure step downloads dependencies.
+Use Visual Studio 2022 with the Desktop development with C++ workload on Windows.
+Open its **x64 Native Tools Command Prompt** and run:
 
-#### Building on other platforms
-
-* Run `cmake --preset <preset-name>`
-  * The recommended preset is `sdl-debug` for local development, or `sdl-relwithdebinfo` for release.
-* Run `cmake --build build/<preset-name> --target install`
-* To run tests, run `ctest --test-dir build/<preset-name>`
-* To run 3DMM, run `dist/<preset-name>/3dmovie`
-  * On macOS, run `dist/<preset-name>/3D Movie Maker.app`
-
-## Contributing
-
-See [CONTRIBUTING.MD](CONTRIBUTING.md) for information on how to contribute to 3DMMEx.
-
-If you have questions, please create a GitHub issue or post in the project's [Discussions page](https://github.com/benstone/3DMMEx/discussions).
-
-## Legal stuff
-
-The following sections have been carried over from the original 3D Movie Maker [GitHub repository](https://github.com/microsoft/Microsoft-3D-Movie-Maker) released by Microsoft in May 2022.
-
-### Code cleanup
-
-This code was restored from the Microsoft corporate archives and cleared for release.
-
-* Developer names and aliases were removed, with the exception of current employees who worked on the
-  original release who consented to keeping their names in place
-* The archive consisted of several CDs, some of which were for alternate builds or products, and
-  have been excluded
-* The code does not build with today's engineering tools, and is released as-is.
-
-### Trademarks
-
-This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft
-trademarks or logos is subject to and must follow
-[Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
-Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
-Any use of third-party trademarks or logos are subject to those third-party's policies.
-
-This repo includes a build from 1995 of BRender from Argonaut software. Approval to open source BRender as MIT was given in an email from Jez San, former CEO of Argonaut. Other versions of BRender exist at <https://github.com/foone/BRender-v1.3.2> and <https://github.com/foone/BRender-1997> Thanks to Jez and the whole BRender team for their hard work on this amazing engine. A full historical list of BRender contributors is available at <https://github.com/foone/BRender-v1.3.2/blob/main/README.md>
-
-This repo does NOT include the SoftImage SDK "./DKIT" from 1992.
-
-Jez also offered this interesting BRender anecdote in an email:
-
+```bat
+git clone https://github.com/foxhollowgames/3d-movie-maker-modern.git
+cd 3d-movie-maker-modern
+cmake --preset x64-msvc-relwithdebinfo -D3DMM_PACKAGE_WIX=OFF
+cmake --build build/x64-msvc-relwithdebinfo --target studio tests
+ctest --test-dir build/x64-msvc-relwithdebinfo --output-on-failure
+cmake --install build/x64-msvc-relwithdebinfo
 ```
-When Sam Littlewood designed BRender, he didn’t write the code. And then document it.  
-The way most things were built at the time.
-First, he wrote the manual.  The full documentation
-That served as the spec.  Then the coding started.
+
+The runnable folder is `dist/x64-msvc-relwithdebinfo`.
+For Windows ARM64, use the ARM64 compiler environment and the `arm64-msvc-relwithdebinfo` preset.
+
+On Ubuntu, install dependencies first:
+
+```sh
+sudo apt-get update
+sudo apt-get install -y g++ cmake ninja-build libsdl2-dev libsdl2-ttf-dev libgtk-3-dev libfontconfig-dev libfluidsynth-dev fluidsynth libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-good zenity
 ```
+
+On macOS, install Xcode command-line tools, CMake, and Ninja. Install the remaining libraries with Homebrew:
+
+```sh
+brew install cmake ninja fontconfig fluidsynth
+```
+
+Build on Linux or macOS:
+
+```sh
+cmake --preset sdl-relwithdebinfo
+cmake --build build/sdl-relwithdebinfo --target studio tests
+ctest --test-dir build/sdl-relwithdebinfo --output-on-failure
+cmake --install build/sdl-relwithdebinfo
+```
+
+On Linux, run `dist/sdl-relwithdebinfo/3dmovie`.
+On macOS, open `dist/sdl-relwithdebinfo/3D Movie Maker.app`.
+The full upstream build guide is in [docs/UPSTREAM.md](docs/UPSTREAM.md).
+
+## Release checks
+
+GitHub Actions compiles Windows x64, Windows ARM64, macOS ARM64, and Linux x64.
+It runs the upstream unit tests. The release procedure checks installed content before packaging downloads.
+Windows and macOS ZIPs include licenses and quick-start instructions.
+Each ZIP has a SHA-256 checksum file.
+Automated tests do not prove every editor feature or audio device works.
+
+See [docs/RELEASING.md](docs/RELEASING.md) for the GH CLI release procedure.
+Report problems in [this repository's issues](https://github.com/foxhollowgames/3d-movie-maker-modern/issues).
+
+## Credits and license
+
+This is an independent community distribution, not a Microsoft product or sponsored release.
+The application continues to identify itself as 3DMMEx to preserve upstream attribution.
+The starting source is 3DMMEx commit `9a4431449a7df0c5acd4be01e972c6fd991962d8`, based on version 0.7.0.
+Fox Hollow Games adds distribution documentation, a Windows launcher, dependency commit pins, and release checks.
+
+The original source history and notices are retained.
+See [LICENSE](LICENSE), [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt), and
+[upstream acknowledgments](docs/UPSTREAM.md#legal-stuff).
+Microsoft and third-party trademarks remain the property of their owners.

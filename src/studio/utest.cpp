@@ -808,8 +808,8 @@ bool _FDlgResSwitch(PDLG pdlg, int32_t *pidit, void *pv)
 
 /***************************************************************************
     Ensure that the screen is at the user's preferred resolution for 3DMM.
-    If user has no registry preference, we offer to switch, try to switch,
-    and save user's	preference.  Registry failures are non-fatal, but
+    If user has no saved preference, we preserve the desktop resolution
+    and run in a window.  Configuration failures are non-fatal, but
     failing to create the main window causes this function to fail.
 
     When this function returns, _fRunInWindow is set correctly and the
@@ -820,10 +820,8 @@ bool APP::_FEnsureDisplayResolution(void)
     AssertBaseThis(0);
 
     PDLG pdlg;
-    int32_t idit;
     int32_t fSwitchRes;
     bool fNoValue;
-    int32_t tsResize;
 
     if (_FDisplayIs640480())
     {
@@ -873,54 +871,10 @@ bool APP::_FEnsureDisplayResolution(void)
         }
     }
 
-    // User doesn't have a preference yet.  Do the interactive thing.
-#ifdef RES_SWITCH_DIALOGS
-    pdlg = DLG::PdlgNew(dlidDesktopResizing, pvNil, pvNil);
-    if (pvNil == pdlg)
-        return fFalse;
-    idit = pdlg->IditDo();
-    ReleasePpo(&pdlg);
-#else              //! RES_SWITCH_DIALOGS
-    idit = 2; // OK
-#endif             //! RES_SWITCH_DIALOGS
-    if (idit == 1) // cancel
-    {
-        _fRunInWindow = fTrue;
-        // try to set pref to fFalse
-        fSwitchRes = fFalse;
-        goto LWriteReg;
-    }
-    _fRunInWindow = fFalse;
-    if (!_FInitOS())
-        return fFalse;
-    if (!_FSwitch640480(fTrue))
-    {
-        _fRunInWindow = fTrue;
-        _RebuildMainWindow();
-        goto LSwitchFailed;
-    }
-
-    tsResize = TsCurrent();
-#ifdef RES_SWITCH_DIALOGS
-    pdlg = DLG::PdlgNew(dlidDesktopResized, _FDlgResSwitch, &tsResize);
-    idit = ivNil; // if dialog fails to come up, treat like a cancel
-    if (pvNil != pdlg)
-        idit = pdlg->IditDo();
-    ReleasePpo(&pdlg);
-#else                               //! RES_SWITCH_DIALOGS
-    idit = 2; // OK
-#endif                              //! RES_SWITCH_DIALOGS
-    if (idit == 1 || idit == ivNil) // cancel or timeout or dialog failure
-    {
-        _fSwitchedResolution = fFalse;
-        _fRunInWindow = fTrue;
-        _RebuildMainWindow();
-        if (!_FSwitch640480(fFalse)) // restore desktop resolution
-            return fFalse;
-        goto LSwitchFailed;
-    }
-    // try to set pref to fTrue
-    fSwitchRes = fTrue;
+    // Preserve the desktop resolution on first launch. Fullscreen remains
+    // available through Alt-Enter and the user's saved preference.
+    _fRunInWindow = fTrue;
+    fSwitchRes = fFalse;
     goto LWriteReg;
 
 LSwitchFailed:

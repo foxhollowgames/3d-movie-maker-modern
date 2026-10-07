@@ -33,7 +33,7 @@ Save your movies in a writable folder, such as Documents.
 - **Intel Macs:** No prebuilt download is supplied or tested by this distribution.
 
 The classic interface retains its original 640 by 480 layout.
-The SDL version supports Alt/Option-Enter to switch fullscreen mode.
+The first Windows launch uses a window and preserves the desktop resolution. Alt/Option-Enter switches fullscreen mode.
 
 ## Build from source
 
@@ -95,7 +95,7 @@ Report problems in [this repository's issues](https://github.com/foxhollowgames/
 This is an independent community distribution, not a Microsoft product or sponsored release.
 The application continues to identify itself as 3DMMEx to preserve upstream attribution.
 The starting source is 3DMMEx commit `9a4431449a7df0c5acd4be01e972c6fd991962d8`, based on version 0.7.0.
-Fox Hollow Games adds distribution documentation, a Windows launcher, dependency commit pins, and release checks.
+Fox Hollow Games adds distribution documentation, a Windows launcher, dependency commit pins, release checks, compiler discovery, and a windowed first-launch default.
 
 The original source history and notices are retained.
 See [LICENSE](LICENSE), [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt), and

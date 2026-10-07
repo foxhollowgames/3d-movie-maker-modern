@@ -82,7 +82,7 @@ The full upstream build guide is in [docs/UPSTREAM.md](docs/UPSTREAM.md).
 ## Release checks
 
 GitHub Actions compiles Windows x64, Windows ARM64, macOS ARM64, and Linux x64.
-It runs the upstream unit tests. The release procedure checks installed content before packaging downloads.
+It runs the upstream unit tests and checks installed content before uploading build artifacts.
 Windows and macOS ZIPs include licenses and quick-start instructions.
 Each ZIP has a SHA-256 checksum file.
 Automated tests do not prove every editor feature or audio device works.

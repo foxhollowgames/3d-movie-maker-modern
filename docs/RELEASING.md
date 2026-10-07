@@ -6,7 +6,7 @@
 4. Validate each installed folder with `scripts/Test-Package.ps1`.
 5. Test the Windows application before publishing the packaged downloads.
 
-The original upstream workflow remains unchanged. It builds Windows x86, x64,
+The upstream workflow uses automatic Visual Studio discovery to support current runners. It builds Windows x86, x64,
 ARM64, SDL debug, Linux debug, and macOS ARM64 configurations.
 Release only the Windows x64, Windows ARM64, and macOS ARM64 folders.
 Rename the x64 artifact's `3dmovie-x64.exe` to `3dmovie.exe` before validation.

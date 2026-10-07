@@ -1,5 +1,9 @@
 name: build
-on: push
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
 jobs:
   compile-msvc-x86-release:
     name: Windows MSVC x86 Release
@@ -10,12 +14,12 @@ jobs:
       - name: CMake Generate
         shell: cmd
         run: |
-          call "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvarsall.bat" x86
+          call "scripts/setup-msvc.cmd" x86 || exit /b 1
           cmake --preset x86-msvc-relwithdebinfo -D3DMM_PACKAGE_WIX=OFF
       - name: CMake Build
         shell: cmd
         run: |
-          call "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvarsall.bat" x86
+          call "scripts/setup-msvc.cmd" x86 || exit /b 1
           cmake --build build/x86-msvc-relwithdebinfo --target tools studio tests
       - name: Run tests
         shell: cmd
@@ -25,6 +29,7 @@ jobs:
         shell: cmd
         run: |
           cmake --install build/x86-msvc-relwithdebinfo --prefix dist/x86-msvc-relwithdebinfo
+          pwsh -NoProfile -File scripts/Test-Package.ps1 -Path dist/x86-msvc-relwithdebinfo -Platform Windows
       - name: Upload debug symbols
         uses: actions/upload-artifact@v4
         with:
@@ -48,12 +53,12 @@ jobs:
       - name: CMake Generate
         shell: cmd
         run: |
-          call "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvarsall.bat" x64
+          call "scripts/setup-msvc.cmd" x64 || exit /b 1
           cmake --preset x64-msvc-debug -D3DMM_PACKAGE_WIX=OFF
       - name: CMake Build
         shell: cmd
         run: |
-          call "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvarsall.bat" x64
+          call "scripts/setup-msvc.cmd" x64 || exit /b 1
           cmake --build build/x64-msvc-debug --target tests
       - name: Run tests
         shell: cmd
@@ -69,12 +74,12 @@ jobs:
       - name: CMake Generate
         shell: cmd
         run: |
-          call "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvarsall.bat" x64
+          call "scripts/setup-msvc.cmd" x64 || exit /b 1
           cmake --preset sdl-x64-msvc-debug -D3DMM_PACKAGE_WIX=OFF
       - name: CMake Build
         shell: cmd
         run: |
-          call "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvarsall.bat" x64
+          call "scripts/setup-msvc.cmd" x64 || exit /b 1
           cmake --build build/sdl-x64-msvc-debug --target studio tests
       - name: Run tests
         shell: cmd
@@ -95,12 +100,12 @@ jobs:
       - name: CMake Generate
         shell: cmd
         run: |
-          call "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvarsall.bat" x64
+          call "scripts/setup-msvc.cmd" x64 || exit /b 1
           cmake --preset x64-clangcl-relwithdebinfo -D3DMM_PACKAGE_WIX=OFF
       - name: CMake Build
         shell: cmd
         run: |
-          call "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvarsall.bat" x64
+          call "scripts/setup-msvc.cmd" x64 || exit /b 1
           cmake --build build/x64-clangcl-relwithdebinfo --target tools studio tests
       - name: Run tests
         shell: cmd
@@ -110,6 +115,7 @@ jobs:
         shell: cmd
         run: |
           cmake --install build/x64-clangcl-relwithdebinfo --prefix dist/x64-clangcl-relwithdebinfo
+          pwsh -NoProfile -File scripts/Test-Package.ps1 -Path dist/x64-clangcl-relwithdebinfo -Platform Windows
           move dist\x64-clangcl-relwithdebinfo\3dmovie.exe dist\x64-clangcl-relwithdebinfo\3dmovie-x64.exe
           move build\x64-clangcl-relwithdebinfo\src\3dmovie.pdb build\x64-clangcl-relwithdebinfo\src\3dmovie-x64.pdb
       - name: Upload debug symbols
@@ -136,12 +142,12 @@ jobs:
       - name: CMake Generate
         shell: cmd
         run: |
-          call "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvarsall.bat" arm64
+          call "scripts/setup-msvc.cmd" arm64 || exit /b 1
           cmake --preset arm64-msvc-relwithdebinfo -D3DMM_PACKAGE_WIX=OFF
       - name: CMake Build
         shell: cmd
         run: |
-          call "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvarsall.bat" arm64
+          call "scripts/setup-msvc.cmd" arm64 || exit /b 1
           cmake --build build/arm64-msvc-relwithdebinfo --target tools studio tests
       - name: Run tests
         shell: cmd
@@ -151,6 +157,7 @@ jobs:
         shell: cmd
         run: |
           cmake --install build/arm64-msvc-relwithdebinfo --prefix dist/arm64-msvc-relwithdebinfo
+          pwsh -NoProfile -File scripts/Test-Package.ps1 -Path dist/arm64-msvc-relwithdebinfo -Platform Windows
       - name: Upload debug symbols
         uses: actions/upload-artifact@v4
         with:
@@ -187,6 +194,7 @@ jobs:
       - name: CMake Install
         run: |
           cmake --install build/sdl-debug --prefix dist/sdl-debug
+          pwsh -NoProfile -File scripts/Test-Package.ps1 -Path dist/sdl-debug -Platform Linux
       - name: Upload debug files
         uses: actions/upload-artifact@v4
         with:
@@ -222,6 +230,7 @@ jobs:
       - name: CMake Install
         run: |
           cmake --install build/sdl-relwithdebinfo --prefix dist/sdl-relwithdebinfo
+          pwsh -NoProfile -File scripts/Test-Package.ps1 -Path dist/sdl-relwithdebinfo -Platform macOS
       - name: Upload Release
         uses: actions/upload-artifact@v4
         with:

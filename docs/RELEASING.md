@@ -21,7 +21,7 @@ Example package validation:
 ```
 
 Create ZIP archives with the installed files at the archive root.
-Preserve symbolic links and executable permissions for macOS.
+For macOS, use the ZIP created during installation on the Mac runner. It preserves symbolic links and executable permissions.
 Generate a SHA-256 checksum file for each ZIP with `Get-FileHash` or `shasum`.
 Extract the Windows ZIP and check launch, sample playback, and movie save/reopen.
 macOS requires a separate interactive check to claim manual macOS validation.

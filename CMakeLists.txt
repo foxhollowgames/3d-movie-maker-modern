@@ -268,6 +268,23 @@ if(WIN32)
     install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/scripts/Start 3D Movie Maker.cmd" DESTINATION .)
 endif()
 
+# Archive on the Mac host before artifact upload strips executable modes and
+# symbolic links from the application bundle.
+if(APPLE)
+    install(CODE "
+        execute_process(
+            COMMAND /usr/bin/zip -r -y
+                \"${PROJECT_BINARY_DIR}/3D-Movie-Maker-Modern-macOS-ARM64.zip\" .
+                -x \"3D-Movie-Maker-Modern-macOS-ARM64.zip\"
+            WORKING_DIRECTORY \"\${CMAKE_INSTALL_PREFIX}\"
+            COMMAND_ERROR_IS_FATAL ANY
+            OUTPUT_QUIET
+        )
+        file(COPY \"${PROJECT_BINARY_DIR}/3D-Movie-Maker-Modern-macOS-ARM64.zip\"
+            DESTINATION \"\${CMAKE_INSTALL_PREFIX}\")
+    ")
+endif()
+
 # CPack must be included *last*, which is antithetical to how most CMake
 # Modules work. We can set all variables for all packaging regardless of
 # whether they're supported. This way we can just swap out what is added to

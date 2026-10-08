@@ -1,0 +1,32 @@
+name: Mod Workshop
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [windows-2022, ubuntu-24.04, macos-14]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r tools/mod-workshop/requirements.txt
+      - run: python -m unittest discover -s tools/mod-workshop -v
+      - name: Build Windows desktop application
+        if: runner.os == 'Windows'
+        run: |
+          python -m pip install pyinstaller==6.22.3
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --name "Mod Workshop" --add-data "tools/mod-workshop/palette.rgb;." --distpath workshop-dist --workpath workshop-build --specpath workshop-build tools/mod-workshop/workshop.py
+          Copy-Item tools/mod-workshop/README.md workshop-dist/README.md
+          Copy-Item LICENSE workshop-dist/LICENSE
+          python tools/mod-workshop/collect_licenses.py workshop-dist/DEPENDENCY-LICENSES.txt
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'Windows'
+        with:
+          name: Mod Workshop Windows x64
+          path: workshop-dist

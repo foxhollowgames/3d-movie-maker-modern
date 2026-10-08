@@ -101,3 +101,9 @@ The original source history and notices are retained.
 See [LICENSE](LICENSE), [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt), and
 [upstream acknowledgments](docs/UPSTREAM.md#legal-stuff).
 Microsoft and third-party trademarks remain the property of their owners.
+
+# Custom assets and mod packs
+
+Use **Mod Workshop** to import static OBJ props, PNG/JPG/BMP textures, and WAV/MP3/FLAC/OGG sound effects.
+Download the game and Workshop from [Releases](https://github.com/foxhollowgames/3d-movie-maker-modern/releases).
+Read the [import guide](tools/mod-workshop/README.md) for asset limits and pack sharing.

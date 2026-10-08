@@ -18,6 +18,7 @@
 ***************************************************************************/
 #include "studio.h"
 #include "socres.h"
+#include "modsid.h"
 
 #ifdef KAUAI_WIN32
 #include "mminstal.h"
@@ -1592,6 +1593,25 @@ bool APP::_FReadTitlesFromReg(PGST *ppgst)
             {
                 Warn("Failed to add expansion title");
                 goto LFail;
+            }
+        }
+    }
+
+    // Custom content lives beside the original product. A canonical directory
+    // name supplies its persistent source ID without registry installation.
+    {
+        FNE fne;
+        FNI fni;
+        FTG ftg = kftgDir;
+        if (fne.FInit(&_fniMsKidsDir, &ftg, 1))
+        {
+            while (fne.FNextFni(&fni))
+            {
+                if (!fni.FUpDir(&stnTitle, ffniNil))
+                    continue;
+                sid = ModSourceId(stnTitle.Psz());
+                if (sid != 0 && !pgst->FFindExtra(&sid) && !pgst->FAddStn(&stnTitle, &sid))
+                    goto LFail;
             }
         }
     }

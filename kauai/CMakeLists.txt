@@ -692,6 +692,7 @@ if (BUILD_TESTS)
     )
 
     add_executable(KauaiTest
+        "${PROJECT_SOURCE_DIR}/kauai/test/modsid_test.cpp"
         "${PROJECT_SOURCE_DIR}/kauai/test/kauai_test.cpp"
         "${PROJECT_SOURCE_DIR}/kauai/test/compression_test.cpp"
         "${PROJECT_SOURCE_DIR}/kauai/test/compiler_test.cpp"

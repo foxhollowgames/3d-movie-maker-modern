@@ -124,7 +124,7 @@ def thumbnail(root_tag, target_tag, name, image):
     data = quantize(canvas).tobytes()
     rows = [bytes((0, 72)) + data[y*72:(y+1)*72] for y in range(54)]
     size = 28 + 108 + sum(map(len, rows))
-    mbmp = HEADER + struct.pack('<BBhiiiii', 0, 0, 0, -36, -27, 36, 27, size)
+    mbmp = HEADER + struct.pack('<BBhiiiii', 0, 0, 0, 0, 0, 72, 54, size)
     mbmp += struct.pack('<54h', *map(len, rows)) + b''.join(rows)
     tfc = HEADER + tag_bytes(target_tag) + struct.pack('<I', 1)
     return [Chunk(root_tag, 1, tfc, name, [('GOKD', 1, 0)]),

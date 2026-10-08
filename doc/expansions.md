@@ -1,5 +1,9 @@
 # Using expansion packs with 3DMMEx
 
+Fox Hollow Games builds also discover custom `FHMod<source_id>` folders.
+Use [Mod Workshop](../tools/mod-workshop/README.md) to import your own props, textures, and sounds.
+Workshop packs use their own format. They do not require V3DMM.
+
 3DMMEx has support for 3D Movie Maker [official and community expansion packs](https://3dmm.miraheze.org/wiki/Expansions). These expansion packs are:
 
 * Doraemon Character Kit: official expansion pack for the Japanese release of 3D Movie Maker.

@@ -557,10 +557,18 @@ void GVDW::_SetRc(void)
     _pgobBase->GetRc(&rcGob, cooHwnd);
     rc = _rcPlay;
     rc.Offset(rcGob.xpLeft, rcGob.ypTop);
+    RECT physical = Presentation::PhysicalRect(_pgobBase->HwndContainer(), RECT(rc));
+    rc = physical;
     if (_rc != rc || !_fVisible)
     {
 #ifdef WIN
         MoveWindow(_hwndMovie, rc.xpLeft, rc.ypTop, rc.Dxp(), rc.Dyp(), fTrue);
+        if (Presentation::Active(_pgobBase->HwndContainer()))
+        {
+            MCI_ANIM_RECT_PARMS destination = {};
+            SetRect(&destination.rc, 0, 0, rc.Dxp(), rc.Dyp());
+            mciSendCommand(_lwDevice, MCI_PUT, MCI_ANIM_PUT_DESTINATION, (DWORD_PTR)&destination);
+        }
         if (!_fVisible)
         {
             MCI_ANIM_WINDOW_PARMS mciWindow;

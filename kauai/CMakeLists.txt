@@ -667,6 +667,18 @@ target_link_libraries(
 
 # Unit tests
 if (BUILD_TESTS)
+    add_executable(PresentationTest "${PROJECT_SOURCE_DIR}/kauai/test/presentation_test.cpp")
+    target_include_directories(PresentationTest PRIVATE "${PROJECT_SOURCE_DIR}/kauai/src")
+    if (WIN32)
+        target_link_libraries(PresentationTest PRIVATE user32 gdi32)
+    endif()
+    if (3DMM_GUI STREQUAL "SDL")
+        target_compile_definitions(PresentationTest PRIVATE PRESENTATION_TEST_SDL)
+        target_link_libraries(PresentationTest PRIVATE SDL2::SDL2)
+    endif()
+    add_test(NAME PresentationTest COMMAND PresentationTest)
+    add_dependencies(tests PresentationTest)
+
     add_library(
         KauaiTestLib
         STATIC

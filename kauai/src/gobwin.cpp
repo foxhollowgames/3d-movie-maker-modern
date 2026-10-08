@@ -177,7 +177,10 @@ void GOB::GetPtMouse(PT *ppt, bool *pfDown)
         }
         GetCursorPos(&pts);
         if (pgob != pvNil)
+        {
             ScreenToClient(pgob->_hwnd, &pts);
+            Presentation::ClientToLogical(pgob->_hwnd, &pts);
+        }
         *ppt = PT(pts);
         ppt->xp -= xp;
         ppt->yp -= yp;
@@ -200,7 +203,7 @@ void GOB::Clean(void)
         return;
 
     vpappb->InvalMarked(hwnd);
-    GetUpdateRect(hwnd, &rcs, fFalse);
+    Presentation::LogicalUpdateRect(hwnd, &rcs);
     rcT = RC(rcs);
     if (rc.FIntersect(&rcT))
         UpdateWindow(hwnd);

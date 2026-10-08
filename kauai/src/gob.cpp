@@ -423,7 +423,7 @@ bool GOB::FGetRcInval(RC *prc, int32_t gin)
 #if defined(KAUAI_WIN32)
         RECT rcs;
 
-        GetUpdateRect(pgob->_hwnd, &rcs, fFalse);
+        Presentation::LogicalUpdateRect(pgob->_hwnd, &rcs);
         rcT = RC(rcs);
 #elif defined(KAUAI_SDL)
         // No system invalidated areas
@@ -530,6 +530,14 @@ void GOB::Scroll(RC *prc, int32_t dxp, int32_t dyp, int32_t gin, RC *prcBad1, RC
     // SW_INVALIDATE invalidates any uncovered stuff and translates any
     // previously invalid stuff
     RECT rcs = RCS(rc);
+    if (Presentation::Active(pgob->_hwnd))
+    {
+        // Native scrolling would move physical pixels instead of the logical surface.
+        pgob->InvalRc(&rc, gin);
+        if (prcBad1)
+            prcBad1->OffsetCopy(&rc, -dpt.xp, -dpt.yp);
+        return;
+    }
     ScrollWindowEx(pgob->_hwnd, dxp, dyp, pvNil, &rcs, hNil, pvNil, SW_INVALIDATE);
 
     // compute the bad rectangles
@@ -892,11 +900,10 @@ void GOB::GetRc(RC *prc, int32_t coo)
 {
     AssertThis(0);
     AssertVarMem(prc);
-    PT dpt;
 
     *prc = _rcCur;
-    _HwndGetDptFromCoo(&dpt, coo);
-    prc->Offset(dpt.xp - _rcCur.xpLeft, dpt.yp - _rcCur.ypTop);
+    prc->Offset(-_rcCur.xpLeft, -_rcCur.ypTop);
+    MapRc(prc, cooLocal, coo);
 }
 
 /***************************************************************************
@@ -906,11 +913,10 @@ void GOB::GetRcVis(RC *prc, int32_t coo)
 {
     AssertThis(0);
     AssertVarMem(prc);
-    PT dpt;
 
     *prc = _rcVis;
-    _HwndGetDptFromCoo(&dpt, coo);
-    prc->Offset(dpt.xp - _rcCur.xpLeft, dpt.yp - _rcCur.ypTop);
+    prc->Offset(-_rcCur.xpLeft, -_rcCur.ypTop);
+    MapRc(prc, cooLocal, coo);
 }
 
 /***************************************************************************
@@ -955,6 +961,30 @@ void GOB::MapPt(PT *ppt, int32_t cooSrc, int32_t cooDst)
     AssertVarMem(ppt);
     PT dpt;
 
+#ifdef KAUAI_WIN32
+    HWND hwnd = HwndContainer();
+    if (Presentation::Active(hwnd) && cooSrc != cooDst)
+    {
+        if (cooSrc == cooGlobal)
+        {
+            POINT pt = POINT(*ppt);
+            ScreenToClient(hwnd, &pt);
+            Presentation::ClientToLogical(hwnd, &pt);
+            *ppt = PT(pt);
+            cooSrc = cooHwnd;
+        }
+        if (cooDst == cooGlobal)
+        {
+            MapPt(ppt, cooSrc, cooHwnd);
+            POINT pt = POINT(*ppt);
+            Presentation::LogicalToClient(hwnd, &pt);
+            ClientToScreen(hwnd, &pt);
+            *ppt = PT(pt);
+            return;
+        }
+    }
+#endif
+
     _HwndGetDptFromCoo(&dpt, cooSrc);
     ppt->xp -= dpt.xp;
     ppt->yp -= dpt.yp;
@@ -972,6 +1002,17 @@ void GOB::MapRc(RC *prc, int32_t cooSrc, int32_t cooDst)
     AssertThis(0);
     AssertVarMem(prc);
     PT dpt;
+
+#ifdef KAUAI_WIN32
+    if (Presentation::Active(HwndContainer()) && (cooSrc == cooGlobal || cooDst == cooGlobal))
+    {
+        PT first(prc->xpLeft, prc->ypTop), last(prc->xpRight, prc->ypBottom);
+        MapPt(&first, cooSrc, cooDst);
+        MapPt(&last, cooSrc, cooDst);
+        prc->Set(first.xp, first.yp, last.xp, last.yp);
+        return;
+    }
+#endif
 
     _HwndGetDptFromCoo(&dpt, cooSrc);
     prc->Offset(-dpt.xp, -dpt.yp);
@@ -1094,6 +1135,7 @@ PGOB GOB::PgobFromPtGlobal(int32_t xp, int32_t yp, PT *pptLocal)
         return pvNil;
     }
     ScreenToClient(hwnd, &pts);
+    Presentation::ClientToLogical(hwnd, &pts);
 #elif defined(KAUAI_SDL)
     PTS pts;
     float fxp, fyp;
@@ -1262,6 +1304,8 @@ void GOB::_SetRcCur(void)
             RECT rcs;
 
             GetClientRect(pgob->_hwnd, &rcs);
+            if (Presentation::Active(pgob->_hwnd))
+                SetRect(&rcs, 0, 0, Presentation::Width, Presentation::Height);
             rc = rcs;
 #elif defined(KAUAI_SDL)
             // The rectangle is always the same as that of the logical application

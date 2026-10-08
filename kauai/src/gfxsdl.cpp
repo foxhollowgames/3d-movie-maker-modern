@@ -7,6 +7,7 @@
 
 ***************************************************************************/
 #include "frame.h"
+#include "presentationsdl.h"
 ASSERTNAME
 
 // Palette used for drawing 8-bit images
@@ -198,11 +199,16 @@ PGPT GPT::PgptNew(HDC hdc)
 ***************************************************************************/
 GPT::~GPT(void)
 {
+    if (_frameTexture != pvNil)
+        SDL_DestroyTexture(_frameTexture);
     if (_texture != pvNil)
     {
         SDL_DestroyTexture(_texture);
         _texture = pvNil;
     }
+
+    if (_renderer != pvNil)
+        SDL_DestroyRenderer(_renderer);
 
     if (_surface != pvNil)
     {
@@ -276,6 +282,11 @@ void GPT::UpdateTexture()
 
 void GPT::RebuildTexture(void)
 {
+    if (_frameTexture != pvNil)
+    {
+        SDL_DestroyTexture(_frameTexture);
+        _frameTexture = pvNil;
+    }
     // Free the existing texture
     if (_texture != pvNil)
         SDL_DestroyTexture(_texture);
@@ -294,6 +305,8 @@ void GPT::RebuildTexture(void)
     _texture =
         SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, kdxpLogical, kdypLogical);
     Assert(_texture, "SDL_CreateTexture failed");
+
+    _frameTexture = Presentation::CreateFrameTexture(_renderer);
 
     InvalidateTexture();
     Flip();
@@ -1112,11 +1125,13 @@ PGL GPT::PglclrGetPalette(void)
 
 void GPT::Flip()
 {
+    if (!_renderer || !_texture)
+        return;
     UpdateTexture();
 
     Assert(!_fOffscreen, "drawing an offscreen GPT to the screen?");
 
-    // Paint the texture
+    Presentation::PaintFrame(_renderer, _frameTexture);
     AssertDoSDL(SDL_RenderCopy(_renderer, _texture, NULL, NULL));
     SDL_RenderPresent(_renderer);
 }

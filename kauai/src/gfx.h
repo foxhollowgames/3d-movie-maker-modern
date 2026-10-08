@@ -748,6 +748,7 @@ class GPT : public GPT_PAR
     SDL_Surface *_surface = pvNil;
     // Texture used for rendering the image
     SDL_Texture *_texture = pvNil;
+    SDL_Texture *_frameTexture = pvNil;
     // Palette for offscreen GPTs
     SDL_Palette *_palOff = pvNil;
 

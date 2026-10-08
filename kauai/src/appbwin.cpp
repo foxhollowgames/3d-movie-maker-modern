@@ -692,6 +692,18 @@ bool APPB::_FCommonWndProc(HWND hwnd, UINT wm, WPARAM wParam, LPARAM lw, int32_t
         if (IsIconic(hwnd))
             break;
 
+        if (Presentation::Active(hwnd))
+        {
+            InvalMarked(hwnd);
+            if (!BeginPaint(hwnd, &ps))
+                break;
+            rc.Set(0, 0, Presentation::Width, Presentation::Height);
+            UpdateHwnd(hwnd, &rc);
+            GPT::Flush();
+            EndPaint(hwnd, &ps);
+            return fTrue;
+        }
+
         // make sure the palette is selected and realized....
         // theoretically, we shouldn't have to do this, but because
         // of past and present Win bugs, we do it to be safe.
@@ -767,7 +779,11 @@ bool APPB::_FCommonWndProc(HWND hwnd, UINT wm, WPARAM wParam, LPARAM lw, int32_t
         }
 
         ResetToolTip();
-        if (pvNil != (pgob = GOB::PgobFromHwnd(hwnd)) && pvNil != (pgob = pgob->PgobFromPt(SwLow(lw), SwHigh(lw), &pt)))
+        POINT mouse;
+        mouse.x = SwLow(lw);
+        mouse.y = SwHigh(lw);
+        Presentation::ClientToLogical(hwnd, &mouse);
+        if (pvNil != (pgob = GOB::PgobFromHwnd(hwnd)) && pvNil != (pgob = pgob->PgobFromPt(mouse.x, mouse.y, &pt)))
         {
             int32_t ts;
 

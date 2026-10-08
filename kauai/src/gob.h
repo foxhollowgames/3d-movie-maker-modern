@@ -64,14 +64,15 @@ inline void ValidHwndRcs(HWND hwnd, RCS *prcs)
 }
 #endif // MAC
 #ifdef KAUAI_WIN32
+#include "presentationwin.h"
 inline void InvalHwndRcs(HWND hwnd, RCS *prcs)
 {
-    RECT rcs = *prcs;
+    RECT rcs = Presentation::PhysicalRect(hwnd, RECT(*prcs));
     InvalidateRect(hwnd, &rcs, fFalse);
 }
 inline void ValidHwndRcs(HWND hwnd, RCS *prcs)
 {
-    RECT rcs = *prcs;
+    RECT rcs = Presentation::PhysicalRect(hwnd, RECT(*prcs));
     ValidateRect(hwnd, &rcs);
 }
 #endif // KAUAI_WIN32

@@ -120,17 +120,19 @@ class APP : public APP_PAR
     MARKMEM
 
   protected:
+#ifdef KAUAI_WIN32
+    WINDOWPLACEMENT _windowPlacement = {};
+#endif
     bool _fDontReportInitFailure; // init failure was already reported
     bool _fOnscreenDrawing;
-    PCFL _pcfl;                   // resource file for app
-    PSTDIO _pstdio;               // Current studio
-    PTATR _ptatr;                 // Current theater
-    PCRM _pcrmAll;                // The app CRM -- all crfs are loaded into this.
-    PGL _pglicrfBuilding;         // List of crfs in _pcrmAll belonging to Building.
-    PGL _pglicrfStudio;           // List of crfs in _pcrmAll belonging to Studio.
-    bool _fDontMinimize : 1,      // "/M" command-line switch
-        _fSlowCPU : 1,            // running on slow CPU
-        _fSwitchedResolution : 1, // we successfully switched to 640x480 mode
+    PCFL _pcfl;              // resource file for app
+    PSTDIO _pstdio;          // Current studio
+    PTATR _ptatr;            // Current theater
+    PCRM _pcrmAll;           // The app CRM -- all crfs are loaded into this.
+    PGL _pglicrfBuilding;    // List of crfs in _pcrmAll belonging to Building.
+    PGL _pglicrfStudio;      // List of crfs in _pcrmAll belonging to Studio.
+    bool _fDontMinimize : 1, // "/M" command-line switch
+        _fSlowCPU : 1,       // running on slow CPU
         _fMainWindowCreated : 1, _fMinimized : 1,
         _fRunInWindow : 1, // run in a window (as opposed to fullscreen)
         _fFontError : 1,   // Have we already seen a font error?
@@ -181,7 +183,6 @@ class APP : public APP_PAR
     bool _FEnsureVideo(void);
     bool _FEnsureColorDepth(void);
     bool _FEnsureDisplayResolution(void);
-    bool _FDisplaySwitchSupported(void);
     void _ParseCommandLine(void);
     void _SkipToSpace(PCSZ *ppch);
     void _SkipSpace(PCSZ *ppch);
@@ -215,8 +216,7 @@ class APP : public APP_PAR
     bool _FInitAcceleratorTable(void);
     void _GetWindowProps(int32_t *pxp, int32_t *pyp, int32_t *pdxp, int32_t *pdyp, uint32_t *pdwStyle);
     void _RebuildMainWindow(void);
-    bool _FSwitch640480(bool fTo640480);
-    bool _FDisplayIs640480(void);
+    bool _FSetFullscreenMode(bool fullscreen);
     bool _FSetRunInWindow(bool fRunInWindow);
     bool _FShowSplashScreen(void);
     bool _FWaitSplashScreen(int32_t dtsSplash);

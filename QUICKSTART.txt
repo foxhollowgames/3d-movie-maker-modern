@@ -12,6 +12,15 @@ Use the ARM64 download for Windows on ARM computers.
 Keep the "Microsoft Kids" folder beside the executable.
 No original CD, installer, or administrator access is required.
 
+DISPLAY SIZE
+The app starts in fullscreen on every launch.
+Press Alt/Option-Enter to switch fullscreen mode.
+Resize or maximize the window in windowed mode to fit your screen.
+The picture keeps its original 4:3 proportions.
+A dark theater texture fills unused space on widescreen and portrait displays.
+Fullscreen preserves your desktop resolution, including 1080p, 1440p, and 4K.
+The original artwork is enlarged. Its source detail does not change.
+
 SAMPLE MOVIES
 Open a movie from "Microsoft Kids/Users/McZee" in the application.
 Use the Play control to play it.

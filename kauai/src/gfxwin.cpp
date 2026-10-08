@@ -81,6 +81,30 @@ void GNV::DrawDib(HDRAWDIB hdd, BITMAPINFOHEADER *pbi, RC *prc)
 void GPT::Flush(void)
 {
     GdiFlush();
+    PGOB screen = GOB::PgobScreen();
+    PGPT port = screen ? screen->Pgpt() : pvNil;
+    if (port && Presentation::Active(port->_hwnd) && port->_hbmp && port->_cactDraw == _cactFlush)
+    {
+        auto v = Presentation::WindowViewport();
+        if (v.width > 0 && v.height > 0 && !IsIconic(port->_hwnd))
+        {
+            HDC dc = GetDC(port->_hwnd);
+            if (dc)
+            {
+                RECT client;
+                GetClientRect(port->_hwnd, &client);
+                int saved = SaveDC(dc);
+                SelectClipRgn(dc, nullptr);
+                Presentation::PaintFrame(dc, client, v);
+                SetStretchBltMode(dc, COLORONCOLOR);
+                StretchBlt(dc, v.x, v.y, v.width, v.height, port->_hdc, 0, 0, Presentation::Width, Presentation::Height,
+                           SRCCOPY);
+                if (saved)
+                    RestoreDC(dc, saved);
+                ReleaseDC(port->_hwnd, dc);
+            }
+        }
+    }
     _cactFlush++;
 }
 
@@ -364,6 +388,18 @@ PGPT GPT::PgptNewHwnd(KWND hwnd)
     Assert(hNil != hwnd, "Null hwnd");
     HDC hdc;
     PGPT pgpt;
+
+    if (Presentation::Active(hwnd))
+    {
+        RC rc(0, 0, Presentation::Width, Presentation::Height);
+        pgpt = PgptNewOffscreen(&rc, 32);
+        if (pgpt)
+        {
+            pgpt->_hwnd = hwnd;
+            pgpt->_fMapIndices = fTrue;
+        }
+        return pgpt;
+    }
 
     if (hNil == hwnd || hNil == (hdc = GetDC(hwnd)))
     {

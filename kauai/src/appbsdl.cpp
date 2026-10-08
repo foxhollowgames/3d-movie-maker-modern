@@ -11,6 +11,7 @@
 #include "fcntl.h"
 #include "stdio.h"
 #include "sndma.h"
+#include "presentation.h"
 
 ASSERTNAME
 
@@ -102,9 +103,13 @@ bool APPB::_FInitOS(void)
 
     U8SZ u8szApp;
     stnApp.GetUtf8Sz(u8szApp);
-    int32_t xpWindow = SDL_WINDOWPOS_UNDEFINED;
-    int32_t ypWindow = SDL_WINDOWPOS_UNDEFINED;
-    SDL_Window *wnd = SDL_CreateWindow(u8szApp, xpWindow, ypWindow, kdxpLogical, kdypLogical, 0);
+    int32_t xpWindow = SDL_WINDOWPOS_CENTERED;
+    int32_t ypWindow = SDL_WINDOWPOS_CENTERED;
+    SDL_Rect available = {0, 0, 1280, 960};
+    SDL_GetDisplayUsableBounds(0, &available);
+    auto size = Presentation::Fit(LwMin(1280, available.w * 9 / 10), LwMin(960, available.h * 9 / 10));
+    SDL_Window *wnd = SDL_CreateWindow(u8szApp, xpWindow, ypWindow, size.width, size.height,
+                                       SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     Assert(wnd != pvNil, "no window returned from SDL_CreateWindow");
     if (wnd == pvNil)
     {
@@ -112,6 +117,7 @@ bool APPB::_FInitOS(void)
     }
 
     vwig.hwndApp = wnd;
+    SDL_SetWindowMinimumSize(wnd, 320, 240);
 
     // FUTURE: Turn this off when Win32 stuff is removed
     SDL_EventState(SDL_SYSWMEVENT, SDL_ENABLE);
@@ -390,6 +396,10 @@ void APPB::_DispatchEvt(PEVT pevt)
         else if (pevt->window.event == SDL_WINDOWEVENT_FOCUS_LOST)
         {
             _Activate(fFalse);
+        }
+        else if (pevt->window.event == SDL_WINDOWEVENT_EXPOSED || pevt->window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+        {
+            GPT::Flush();
         }
         break;
     default:

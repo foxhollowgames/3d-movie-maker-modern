@@ -290,7 +290,7 @@ bool APP::_FInit(uint32_t grfapp, uint32_t grfgob, int32_t ginDef)
     }
 
     if (!_FEnsureDisplayResolution())
-    { // may call _FInitOS
+    {
         _FGenericError(PszLit("_FEnsureDisplayResolution"));
         _fDontReportInitFailure = fTrue;
         goto LFail;
@@ -471,12 +471,6 @@ bool APP::_FInit(uint32_t grfapp, uint32_t grfgob, int32_t ginDef)
     return fTrue;
 LFail:
     _fQuit = fTrue;
-
-    if (_fSwitchedResolution)
-    {
-        if (_FSwitch640480(fFalse)) // try to restore desktop
-            _fSwitchedResolution = fFalse;
-    }
 
     // _fDontReportInitFailure will be true if one of the above functions
     // has already posted an alert explaining why the app is shutting down.
@@ -808,107 +802,14 @@ bool _FDlgResSwitch(PDLG pdlg, int32_t *pidit, void *pv)
 }
 
 /***************************************************************************
-    Ensure that the screen is at the user's preferred resolution for 3DMM.
-    If user has no saved preference, we preserve the desktop resolution
-    and run in a window.  Configuration failures are non-fatal, but
-    failing to create the main window causes this function to fail.
-
-    When this function returns, _fRunInWindow is set correctly and the
-    main app window *might* be created.
+    Start fullscreen at the desktop resolution on every launch.
+    Ignore the legacy resolution-switch preference, including saved window mode.
 ***************************************************************************/
 bool APP::_FEnsureDisplayResolution(void)
 {
     AssertBaseThis(0);
-
-    PDLG pdlg;
-    int32_t fSwitchRes;
-    bool fNoValue;
-
-    if (_FDisplayIs640480())
-    {
-        // System is already 640x480, so ignore registry and run fullscreen
-        _fRunInWindow = fFalse;
-        return fTrue;
-    }
-
-    if (!_FDisplaySwitchSupported())
-    {
-        // System can't switch res, so ignore registry and run in a window
-        _fRunInWindow = fTrue;
-        return fTrue;
-    }
-
-    // See if there's a res switch preference in the registry
-    if (!FGetSetRegKey(kszSwitchResolutionValue, &fSwitchRes, SIZEOF(fSwitchRes), fregNil, &fNoValue))
-    {
-        // Registry error...just run in a window
-        _fRunInWindow = fTrue;
-        return fTrue;
-    }
-
-    if (!fNoValue)
-    {
-        // User has a preference
-        if (!fSwitchRes)
-        {
-            _fRunInWindow = fTrue;
-            return fTrue;
-        }
-        else // try to switch res
-        {
-            _fRunInWindow = fFalse;
-            if (!_FInitOS())
-            {
-                // we're screwed
-                return fFalse;
-            }
-            if (!_FSwitch640480(fTrue))
-            {
-                _fRunInWindow = fTrue;
-                _RebuildMainWindow();
-                goto LSwitchFailed;
-            }
-            return fTrue;
-        }
-    }
-
-    // Preserve the desktop resolution on first launch. Fullscreen remains
-    // available through Alt-Enter and the user's saved preference.
-    _fRunInWindow = fTrue;
-    fSwitchRes = fFalse;
-    goto LWriteReg;
-
-LSwitchFailed:
-    pdlg = DLG::PdlgNew(dlidDesktopWontResize, pvNil, pvNil);
-    if (pvNil != pdlg)
-        pdlg->IditDo();
-    ReleasePpo(&pdlg);
-    // try to set pref to fFalse
-    fSwitchRes = fFalse;
-LWriteReg:
-    FGetSetRegKey(kszSwitchResolutionValue, &fSwitchRes, SIZEOF(fSwitchRes), fregSetKey);
+    _fRunInWindow = fFalse;
     return fTrue;
-}
-
-/***************************************************************************
-    Return whether display is currently 640x480
-***************************************************************************/
-bool APP::_FDisplayIs640480(void)
-{
-#ifdef WIN
-    return (GetSystemMetrics(SM_CXSCREEN) == 640 && GetSystemMetrics(SM_CYSCREEN) == 480);
-#else  // !WIN
-    int w, h;
-
-    if (vwig.hwndApp == pvNil)
-        return fFalse;
-
-    SDL_GetWindowSize(vwig.hwndApp, &w, &h);
-
-    // This is actually correct, since on Windows the screen upscaling is done by switching
-    // the video controller into 640x480 mode to fill the screen.
-    return (w != kdxpLogical && h != kdypLogical);
-#endif // WIN
 }
 
 /***************************************************************************
@@ -929,8 +830,16 @@ bool APP::_FInitOS(void)
     }
 
     _fMainWindowCreated = fTrue;
+    if (!_fRunInWindow && !_FSetFullscreenMode(fTrue))
+        _fRunInWindow = fTrue;
 
 #elif defined(KAUAI_WIN32)
+    // Use physical monitor pixels on high-DPI displays when Windows supports it.
+    using SetDpiAwareness = BOOL(WINAPI *)(HANDLE);
+    auto setDpiAwareness = reinterpret_cast<SetDpiAwareness>(
+        GetProcAddress(GetModuleHandle(PszLit("user32.dll")), "SetProcessDpiAwarenessContext"));
+    if (!setDpiAwareness || !setDpiAwareness(reinterpret_cast<HANDLE>(-4)))
+        SetProcessDPIAware();
     int32_t dxpWindow;
     int32_t dypWindow;
     int32_t xpWindow;
@@ -996,45 +905,32 @@ bool APP::_FInitOS(void)
 ***************************************************************************/
 void APP::_GetWindowProps(int32_t *pxp, int32_t *pyp, int32_t *pdxp, int32_t *pdyp, uint32_t *pdwStyle)
 {
-    AssertBaseThis(0);
-    AssertVarMem(pxp);
-    AssertVarMem(pyp);
-    AssertVarMem(pdxp);
-    AssertVarMem(pdyp);
-    AssertVarMem(pdwStyle);
-
 #if defined(KAUAI_WIN32)
-
-    if (!_fRunInWindow)
+    MONITORINFO monitor = {};
+    monitor.cbSize = sizeof(monitor);
+    GetMonitorInfo(MonitorFromWindow(vwig.hwndApp, MONITOR_DEFAULTTONEAREST), &monitor);
+    RECT area = _fRunInWindow ? monitor.rcWork : monitor.rcMonitor;
+    *pdwStyle &= ~(WS_POPUP | WS_OVERLAPPEDWINDOW);
+    *pdwStyle |= WS_CLIPCHILDREN | (_fRunInWindow ? WS_OVERLAPPEDWINDOW : WS_POPUP);
+    if (_fRunInWindow)
     {
-        *pdwStyle |= (WS_POPUP | WS_CLIPCHILDREN);
-        *pdwStyle &= ~(WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX);
-        *pxp = 0;
-        *pyp = 0;
-        *pdxp = GetSystemMetrics(SM_CXSCREEN);
-        *pdyp = GetSystemMetrics(SM_CYSCREEN);
+        RECT border = {};
+        AdjustWindowRect(&border, *pdwStyle, FALSE);
+        int width = LwMin(1280, (area.right - area.left) * 9 / 10 - (border.right - border.left));
+        int height = LwMin(960, (area.bottom - area.top) * 9 / 10 - (border.bottom - border.top));
+        auto view = Presentation::Fit(width, height);
+        *pdxp = view.width + border.right - border.left;
+        *pdyp = view.height + border.bottom - border.top;
     }
     else
     {
-        RECT rcs;
-        *pdwStyle |= (WS_OVERLAPPED | WS_CLIPCHILDREN | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX);
-        *pdwStyle &= ~WS_POPUP;
-        rcs.left = 0;
-        rcs.top = 0;
-        rcs.right = 640;
-        rcs.bottom = 480;
-        AdjustWindowRect(&rcs, *pdwStyle, fFalse);
-        *pdxp = rcs.right - rcs.left;
-        *pdyp = rcs.bottom - rcs.top;
-        // Center window on screen
-        // REVIEW *****: how do you adjust window appropriately for taskbar?
-        *pxp = LwMax((GetSystemMetrics(SM_CXSCREEN) - *pdxp) / 2, 0);
-        *pyp = LwMax((GetSystemMetrics(SM_CYSCREEN) - *pdyp) / 2, 0);
+        *pdxp = area.right - area.left;
+        *pdyp = area.bottom - area.top;
     }
-
+    *pxp = area.left + (area.right - area.left - *pdxp) / 2;
+    *pyp = area.top + (area.bottom - area.top - *pdyp) / 2;
 #else
-    *pxp = 0;
-    *pyp = 0;
+    *pxp = *pyp = 0;
     *pdxp = 640;
     *pdyp = 480;
     *pdwStyle = 0;
@@ -1060,7 +956,8 @@ void APP::_RebuildMainWindow(void)
     dwStyle = GetWindowLong(vwig.hwndApp, GWL_STYLE);
     _GetWindowProps(&xpWindow, &ypWindow, &dxpWindow, &dypWindow, &dwStyle);
     SetWindowLong(vwig.hwndApp, GWL_STYLE, dwStyle);
-    SetWindowPos(vwig.hwndApp, HWND_TOP, xpWindow, ypWindow, dxpWindow, dypWindow, 0);
+    SetWindowPos(vwig.hwndApp, HWND_TOP, xpWindow, ypWindow, dxpWindow, dypWindow, SWP_FRAMECHANGED);
+    InvalidateRect(vwig.hwndApp, nullptr, FALSE);
 #endif // KAUAI_WIN32
 }
 
@@ -2541,52 +2438,6 @@ void APP::_Activate(bool fActive)
 
     APP_PAR::_Activate(fActive);
 
-#ifdef WIN
-    bool fIsIconic;
-
-    fIsIconic = IsIconic(vwig.hwndApp);
-
-    if (!fActive) // app was just deactivated
-    {
-        if (_FDisplayIs640480() && !_fDontMinimize && !fIsIconic)
-        {
-            // Note: using SW_MINIMIZE causes a bug where alt-tabbing
-            // from this app to a fullscreen DOS window reactivates
-            // this app.  So use SW_SHOWMINNOACTIVE instead.
-            ShowWindow(vwig.hwndApp, SW_SHOWMINNOACTIVE); // minimize app
-            _fMinimized = fTrue;
-
-            // Note that we examine _fMinimized during the WM_DISPLAYCHANGE message
-            // received as a result of the following res change call. Therefore the
-            // minimize operation MUST precede the res switch.
-            if (_fSwitchedResolution)
-                _FSwitch640480(fFalse);
-
-            // When the portfolio is displayed, the main app is automatically disabled.
-            // This means all keyboard/mouse input directed at the main app window will
-            // be ignored until the portfolio is finished with. If the app is minimized
-            // here while the portfolio is displayed, then we will be left with a disabled
-            // app window on the win95 task bar. As a result, the app will not appear
-            // only the task window invoked by an Alt-tab, nor is it resized when
-            // the user clicks on it in the taskbar, (even though win95 tries to
-            // activate it). We could do the following...
-            // (1) Do not auto-minimize the app window while the portfolio is displayed.
-            //		This is what happens on NT.
-            // (2) Drop the portfolio here, so the app window is enabled on the taskbar.
-            // (3) Make sure the app window is enabled now, by doing this...
-            EnableWindow(vwig.hwndApp, TRUE);
-
-            // The concern with doing this, is that when the app is later restored,
-            // it is then enabled when it shouldn't be, as the portfolio is still
-            // up in front of it. As it happens, this doesn't matter because the
-            // portfolio is full screen. This means that the user can't direct any
-            // mouse input to the main app window, and the portfolio will eat up any
-            // keyboard input.
-        }
-    }
-
-#endif // WIN
-
     /* Don't do this stuff unless we've got the CEX set up */
     if (vpcex != pvNil)
     {
@@ -3507,232 +3358,43 @@ bool APP::FCmdInfo(PCMD pcmd)
 #endif // KAUAI_WIN32
 }
 
-#ifdef WIN
-#ifdef UNICODE
-typedef LONG(WINAPI *PFNCHDS)(LPDEVMODEW lpDevMode, DWORD dwFlags);
-const char kpszChds[] = "ChangeDisplaySettingsW";
-#else
-typedef LONG(WINAPI *PFNCHDS)(LPDEVMODEA lpDevMode, DWORD dwFlags);
-const PCSZ kpszChds = PszLit("ChangeDisplaySettingsA");
-#endif // !UNICODE
-
-#ifdef BUG1920
-#ifdef UNICODE
-typedef BOOL(WINAPI *PFNENUM)(LPCWSTR lpszDeviceName, DWORD iModeNum, LPDEVMODEW lpDevMode);
-const PSZ kpszEnum = PszLit("EnumDisplaySettingsW");
-#else
-typedef BOOL(WINAPI *PFNENUM)(LPCSTR lpszDeviceName, DWORD iModeNum, LPDEVMODEA lpDevMode);
-const PSZ kpszEnum = PszLit("EnumDisplaySettingsA");
-#endif // !UNICODE
-#endif // BUG1920
-#endif // WIN
-
-#ifndef DM_BITSPERPEL
-#define DM_BITSPERPEL 0x00040000L // from wingdi.h
-#define DM_PELSWIDTH 0x00080000L
-#define DM_PELSHEIGHT 0x00100000L
-#endif //! DM_BITSPERPEL
-
-#ifndef CDS_FULLSCREEN
-#define CDS_FULLSCREEN 4
-#endif //! CDS_FULLSCREEN
-
-#ifndef DISP_CHANGE_SUCCESSFUL
-#define DISP_CHANGE_SUCCESSFUL 0
-#endif //! DISP_CHANGE_SUCCESSFUL
-
 /***************************************************************************
-    Determine if display resolution switching is supported
+    Set fullscreen presentation without changing the desktop display mode.
 ***************************************************************************/
-bool APP::_FDisplaySwitchSupported(void)
+bool APP::_FSetFullscreenMode(bool fullscreen)
 {
-    AssertBaseThis(0);
-
-#ifdef WIN
-    // We can no longer compile for Windows platforms that do not support screen resolution changes.
+#if defined(KAUAI_SDL)
+    if (SDL_SetWindowFullscreen((SDL_Window *)vwig.hwndApp, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0) != 0)
+        return fFalse;
+#endif
     return fTrue;
-#else
-    // SDL does support res-switching via upscaling
-    return fTrue;
-#endif // WIN
-}
-
-/***************************************************************************
-    Switch to/from 640x480x8bit video mode.  It uses GetProcAddress so it
-    can fail gracefully on systems that don't support
-    ChangeDisplaySettings().
-***************************************************************************/
-bool APP::_FSwitch640480(bool fTo640480)
-{
-    AssertBaseThis(0);
-
-#ifdef KAUAI_WIN32
-#ifdef BUG1920
-    bool fSetMode = fFalse, fSetBbp = fTrue;
-    DWORD iModeNum;
-    PFNENUM pfnEnum;
-#endif // BUG1920
-    HINSTANCE hLibrary;
-    PFNCHDS pfnChds;
-    DEVMODE devmode;
-    int32_t lwResult;
-
-    hLibrary = LoadLibrary(PszLit("USER32.DLL"));
-    if (0 == hLibrary)
-        goto LFail;
-
-    pfnChds = (PFNCHDS)GetProcAddress(hLibrary, kpszChds);
-    if (pvNil == pfnChds)
-        goto LFail;
-
-#ifdef BUG1920
-    pfnEnum = (PFNENUM)GetProcAddress(hLibrary, kpszEnum);
-    if (pvNil == pfnEnum)
-        goto LFail;
-#endif // BUG1920
-
-    if (fTo640480)
-    {
-        // Try to switch to 640x480
-#ifdef BUG1920
-    LRetry:
-        for (iModeNum = 0; pfnEnum(NULL, iModeNum, &devmode); iModeNum++)
-        {
-            if ((fSetBbp ? devmode.dmBitsPerPel != 8 : devmode.dmBitsPerPel < 8) || devmode.dmPelsWidth != 640 ||
-                devmode.dmPelsHeight != 480)
-            {
-                continue;
-            }
-            lwResult = pfnChds(&devmode, CDS_FULLSCREEN);
-            if (lwResult == DISP_CHANGE_SUCCESSFUL)
-            {
-                fSetMode = fTrue;
-                break;
-            }
-        }
-        if (!fSetMode && fSetBbp)
-        {
-            fSetBbp = fFalse;
-            goto LRetry;
-        }
-
-        if (fSetMode && _FDisplayIs640480())
-#else  // BUG1920
-        devmode.dmSize = SIZEOF(DEVMODE);
-        devmode.dmBitsPerPel = 8;
-        devmode.dmPelsWidth = 640;
-        devmode.dmPelsHeight = 480;
-        devmode.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
-        lwResult = pfnChds(&devmode, CDS_FULLSCREEN);
-        if (DISP_CHANGE_SUCCESSFUL != lwResult)
-        {
-            // try without setting the bpp
-            devmode.dmFields &= ~DM_BITSPERPEL;
-            lwResult = pfnChds(&devmode, CDS_FULLSCREEN);
-        }
-
-        if (DISP_CHANGE_SUCCESSFUL == lwResult && _FDisplayIs640480())
-#endif // !BUG1920
-        {
-            _fSwitchedResolution = fTrue;
-            SetWindowPos(vwig.hwndApp, HWND_TOP, 0, 0, 640, 480, 0);
-        }
-        else
-        {
-            goto LFail;
-        }
-    }
-    else
-    {
-        // Try to restore user's previous resolution
-        lwResult = pfnChds(NULL, CDS_FULLSCREEN);
-        if (DISP_CHANGE_SUCCESSFUL != lwResult)
-            goto LFail;
-    }
-    FreeLibrary(hLibrary);
-    return fTrue;
-LFail:
-    if (0 != hLibrary)
-        FreeLibrary(hLibrary);
-    return fFalse;
-#elif defined(KAUAI_SDL)
-    PGOB pgobScreen = GOB::PgobScreen();
-    int32_t fSwitchRes = !_fRunInWindow;
-
-    if (fTo640480)
-    {
-        SDL_SetWindowFullscreen((SDL_Window *)vwig.hwndApp, SDL_WINDOW_FULLSCREEN_DESKTOP);
-
-        if (pgobScreen != pvNil)
-        {
-            PGPT pgpt = pgobScreen->Pgpt();
-
-            pgpt->RebuildTexture();
-        }
-
-        _fSwitchedResolution = fTrue;
-    }
-    else
-    {
-        SDL_SetWindowFullscreen((SDL_Window *)vwig.hwndApp, 0);
-
-        if (pgobScreen != pvNil)
-        {
-            PGPT pgpt = pgobScreen->Pgpt();
-
-            pgpt->RebuildTexture();
-        }
-    }
-
-    FGetSetRegKey(kszSwitchResolutionValue, &fSwitchRes, SIZEOF(fSwitchRes), fregSetKey);
-
-    return fTrue;
-#endif // KAUAI_WIN32
 }
 
 bool APP::_FSetRunInWindow(bool fRunInWindowNew)
 {
     AssertThis(0);
-
-    if (FPure(_fRunInWindow) != FPure(fRunInWindowNew))
+    if (FPure(_fRunInWindow) == FPure(fRunInWindowNew))
+        return fTrue;
+#ifdef KAUAI_WIN32
+    if (!fRunInWindowNew)
     {
-        if (!fRunInWindowNew)
-        {
-            // user wants to be fullscreen
-            if (_FDisplaySwitchSupported())
-            {
-                _fRunInWindow = fFalse;
-                _RebuildMainWindow();
-                if (!_FSwitch640480(fTrue))
-                {
-                    _fRunInWindow = fTrue;
-                    _RebuildMainWindow();
-                }
-            }
-        }
-        else
-        {
-            // user wants to run in a window.
-            // Don't allow user to run in a window at 640x480 resolution.
-            if (!_FDisplayIs640480() || _fSwitchedResolution)
-            {
-                _fRunInWindow = fTrue;
-                _RebuildMainWindow();
-                if (_FSwitch640480(fFalse))
-                {
-                    _fSwitchedResolution = fFalse;
-                }
-                else
-                {
-                    // back to fullscreen
-                    _fRunInWindow = fFalse;
-                    _RebuildMainWindow();
-                }
-            }
-        }
+        _windowPlacement.length = sizeof(_windowPlacement);
+        GetWindowPlacement(vwig.hwndApp, &_windowPlacement);
+        if (IsZoomed(vwig.hwndApp))
+            ShowWindow(vwig.hwndApp, SW_RESTORE);
     }
-
-    return FPure(_fRunInWindow) == FPure(fRunInWindowNew);
+#endif
+    if (!_FSetFullscreenMode(!fRunInWindowNew))
+        return fFalse;
+    _fRunInWindow = fRunInWindowNew;
+    _RebuildMainWindow();
+#ifdef KAUAI_WIN32
+    if (_fRunInWindow && _windowPlacement.length)
+        SetWindowPlacement(vwig.hwndApp, &_windowPlacement);
+#endif
+    int32_t fullscreen = !_fRunInWindow;
+    FGetSetRegKey(kszSwitchResolutionValue, &fullscreen, SIZEOF(fullscreen), fregSetKey);
+    return fTrue;
 }
 
 /***************************************************************************
@@ -3755,8 +3417,6 @@ void APP::_CleanUp(void)
     ReleasePpo(&_pkwa);
     BWLD::CloseBRender();
     APP_PAR::_CleanUp();
-    if (_fSwitchedResolution)
-        _FSwitch640480(fFalse); // try to restore desktop
 }
 
 /***************************************************************************
@@ -4379,78 +4039,48 @@ bool APP::_FFrameWndProc(HWND hwnd, UINT wm, WPARAM wParam, LPARAM lw, int32_t *
         *plwRet = fTrue;
         return fTrue;
 
-    case WM_SIZE: {
-        bool fRet;
-        int32_t lwStyle;
+    case WM_CREATE:
+        Presentation::window = hwnd;
+        break;
 
-        fRet = APP_PAR::_FFrameWndProc(hwnd, wm, wParam, lw, plwRet);
-        lwStyle = GetWindowLong(hwnd, GWL_STYLE);
-        lwStyle &= ~WS_MAXIMIZEBOX;
-        if (wParam == SIZE_MINIMIZED)
-        {
-            _fMinimized = fTrue;
-            if (vpcex != pvNil)
-                lwStyle |= WS_SYSMENU;
-            else
-                lwStyle &= ~WS_SYSMENU;
-        }
-        else if (!_fRunInWindow)
-            lwStyle &= ~WS_SYSMENU;
-        SetWindowLong(hwnd, GWL_STYLE, lwStyle);
-        if (wParam == SIZE_RESTORED)
-        {
-            if (_fMainWindowCreated)
-                _RebuildMainWindow();
-            if (_fSwitchedResolution && _fMinimized)
-            {
-                if (!_FDisplayIs640480())
-                    _FSwitch640480(fTrue);
-            }
-            ShowWindow(vwig.hwndApp, SW_RESTORE); // restore app window
-            _fMinimized = fFalse;
-        }
-        return fRet;
+    case WM_DESTROY:
+        Presentation::window = nullptr;
+        break;
+
+    case WM_GETMINMAXINFO: {
+        RECT minimum = {0, 0, 320, 240};
+        AdjustWindowRect(&minimum, GetWindowLong(hwnd, GWL_STYLE), FALSE);
+        MINMAXINFO *limits = reinterpret_cast<MINMAXINFO *>(lw);
+        limits->ptMinTrackSize.x = minimum.right - minimum.left;
+        limits->ptMinTrackSize.y = minimum.bottom - minimum.top;
+        *plwRet = 0;
+        return fTrue;
     }
-    case WM_DISPLAYCHANGE:
-        // Note that we don't need to do any of this if we're closing down
-        if (_fQuit)
-            break;
 
-        if (_FDisplayIs640480())
-        {
-            _fRunInWindow = fFalse;
+    case WM_SIZE:
+        _fMinimized = wParam == SIZE_MINIMIZED;
+        if (!_fMinimized)
+            InvalidateRect(hwnd, nullptr, FALSE);
+        // Keep the authored GOB layout independent of physical window size.
+        *plwRet = 0;
+        return fTrue;
+
+    case WM_DISPLAYCHANGE:
+        if (!_fQuit && !_fRunInWindow && !_fMinimized)
             _RebuildMainWindow();
+        *plwRet = 0;
+        return fTrue;
+
+    case WM_DPICHANGED:
+        if (_fRunInWindow)
+        {
+            const RECT *suggested = reinterpret_cast<const RECT *>(lw);
+            SetWindowPos(hwnd, nullptr, suggested->left, suggested->top, suggested->right - suggested->left,
+                         suggested->bottom - suggested->top, SWP_NOZORDER | SWP_NOACTIVATE);
         }
         else
-        {
-            // We're not running at 640x480 resolution now. Current design is that
-            // if we switch from 640x480 to higher while the app is minimized, the
-            // app it to still be full screen when restored. Therefore we don't
-            // need to change _fRunInWindow here, as that we remain the same as
-            // before the res switch, (as will the Windows properties for the app).
-            // All we need to is make a note that we're no longer running in the
-            // current windows settings resolution if we're running in full screen.
-
-            if (!_fRunInWindow)
-            {
-                _fSwitchedResolution = fTrue;
-
-                // If we're not minimized then we must switch to 640x480 resolution.
-                // Don't switch res unless we're the active app window
-
-                if (!_fMinimized && GetForegroundWindow() == vwig.hwndApp)
-                {
-                    if (!_FSwitch640480(fTrue))
-                        _fSwitchedResolution = fFalse;
-                }
-            }
-
-            // Call rebuild now to make sure the app window gets positioned
-            // at the centre of the screen. Note that none of the other
-            // window attributes will change beneath _RebuildMainWindow.
-            if (!_fMinimized)
-                _RebuildMainWindow();
-        }
+            _RebuildMainWindow();
+        *plwRet = 0;
         return fTrue;
 
     case WM_INITMENUPOPUP: {
@@ -4507,13 +4137,8 @@ bool APP::FAllowScreenSaver(void)
 {
     AssertBaseThis(0);
 
-    // Disable the screen saver if...
-    // 1. We're going to autominimize if a screen saver starts. Otherwise
-    //    the user would be confused when they get back to the machine.
-    // 2. We've switched resolutions, (ie we're full screen in a > 640x480 mode).
-    //    Otherwise the screen save only acts on a portion of the screen.
-
-    return !_FDisplayIs640480() && !_fSwitchedResolution;
+    // Keep fullscreen playback uninterrupted.
+    return _fRunInWindow;
 }
 
 /***************************************************************************

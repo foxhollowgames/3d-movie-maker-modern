@@ -56,6 +56,9 @@ class KWA : public KWA_PAR
 #define kszMidiOutMsgValue PszLit("MidiOutMsg")
 #define kszGreaterThan8bppMsgValue PszLit("GreaterThan8bppMsg")
 #define kszSwitchResolutionValue PszLit("SwitchResolution")
+#define kszDisplayFullscreen PszLit("DisplayFullscreen")
+#define kszWindowWidth PszLit("WindowWidth")
+#define kszWindowHeight PszLit("WindowHeight")
 #define kszHomeDirValue PszLit("HomeDirectory")
 #define kszInstallDirValue PszLit("InstallDirectory")
 #define kszProductsKey PszLit("Software\\Microsoft\\Microsoft Kids\\3D Movie Maker\\Products")
@@ -123,6 +126,7 @@ class APP : public APP_PAR
 #ifdef KAUAI_WIN32
     WINDOWPLACEMENT _windowPlacement = {};
 #endif
+    int32_t _displayWindowWidth = 0, _displayWindowHeight = 0;
     bool _fDontReportInitFailure; // init failure was already reported
     bool _fOnscreenDrawing;
     PCFL _pcfl;              // resource file for app
@@ -284,6 +288,7 @@ class APP : public APP_PAR
     bool FCmdExitStudio(PCMD pcmd);
     bool FCmdDeactivate(PCMD pcmd);
     bool FCmdToggleFullscreen(PCMD pcmd);
+    bool FCmdDisplaySettings(PCMD pcmd);
 
     static bool FInsertCD(PSTN pstnTitle);
     void DisplayErrors(void);

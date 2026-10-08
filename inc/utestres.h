@@ -35,6 +35,13 @@
 #define acidGlobal 225
 #define dlidAbnormalExit 226
 #define dlidGenericErrorBox 227
+#define dlidDisplaySettings 228
+#define IDC_DISPLAY_DETECTED 1030
+#define IDC_DISPLAY_FULLSCREEN 1031
+#define IDC_DISPLAY_WINDOWED 1032
+#define IDC_DISPLAY_SIZE 1033
+#define IDC_DISPLAY_RESET 1034
+#define IDC_DISPLAY_PREVIEW 1035
 #define IDC_CHECK1 1010
 #define IDC_RADIO1 1012
 #define IDC_RADIO2 1013

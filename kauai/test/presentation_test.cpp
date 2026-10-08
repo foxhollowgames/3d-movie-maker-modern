@@ -1,4 +1,5 @@
 #include "presentation.h"
+#include "displaysettings.h"
 #include <cstdio>
 #include <cstdlib>
 
@@ -25,6 +26,18 @@ static void Check(bool passed, const char *message)
 int main()
 {
     using namespace Presentation;
+    auto automatic = DisplaySettings::FitWindow(0, 0, 1904, 1033);
+    Check(automatic.width == 1713 && automatic.height == 929, "automatic window follows usable display size");
+    auto configured = DisplaySettings::FitWindow(1280, 720, 1904, 1033);
+    Check(configured.width == 1280 && configured.height == 720, "configured resolution is retained when it fits");
+    auto smallerMonitor = DisplaySettings::FitWindow(3840, 2160, 1264, 673);
+    Check(smallerMonitor.width <= 1264 && smallerMonitor.height <= 673, "saved resolution fits a smaller monitor");
+    auto invalid = DisplaySettings::FitWindow(-1, 999999, 1904, 1033);
+    Check(invalid.width == automatic.width && invalid.height == automatic.height,
+          "invalid settings fall back to automatic");
+    auto portrait = DisplaySettings::FitWindow(1920, 1080, 704, 1233);
+    Check(portrait.width == 704 && portrait.height == 396, "saved size adapts to portrait displays");
+    Check(DisplaySettings::FitWindow(0, 0, 0, 0).width == 1, "unavailable display has a safe fallback");
     const int sizes[][2] = {{640, 480},   {1280, 720},  {1920, 1080}, {2560, 1440}, {3840, 2160},
                             {3440, 1440}, {5120, 1440}, {1080, 1920}, {1365, 767},  {320, 240}};
     for (const auto &size : sizes)

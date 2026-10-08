@@ -19,9 +19,11 @@
 #include "studio.h"
 #include "socres.h"
 #include "modsid.h"
+#include "displaysettings.h"
 
 #ifdef KAUAI_WIN32
 #include "mminstal.h"
+#include "displaysettingswin.h"
 #endif // KAUAI_WIN32
 
 #ifdef KAUAI_SDL
@@ -81,6 +83,7 @@ ON_CID_GEN(cidInvokeSplot, &APP::FCmdInvokeSplot, pvNil)
 ON_CID_GEN(cidExitStudio, &APP::FCmdExitStudio, pvNil)
 ON_CID_GEN(cidDeactivate, &APP::FCmdDeactivate, pvNil)
 ON_CID_GEN(cidToggleFullscreen, &APP::FCmdToggleFullscreen, pvNil)
+ON_CID_GEN(cidDisplaySettings, &APP::FCmdDisplaySettings, pvNil)
 END_CMD_MAP_NIL()
 
 APP vapp;
@@ -802,13 +805,19 @@ bool _FDlgResSwitch(PDLG pdlg, int32_t *pidit, void *pv)
 }
 
 /***************************************************************************
-    Start fullscreen at the desktop resolution on every launch.
-    Ignore the legacy resolution-switch preference, including saved window mode.
+    Default to the current desktop resolution. Read explicit display settings,
+    but do not import the old resolution-switch preference.
 ***************************************************************************/
 bool APP::_FEnsureDisplayResolution(void)
 {
     AssertBaseThis(0);
-    _fRunInWindow = fFalse;
+    int32_t fullscreen = fTrue;
+    FGetSetRegKey(kszDisplayFullscreen, &fullscreen, SIZEOF(fullscreen), fregNil);
+    _fRunInWindow = fullscreen == 0;
+    FGetSetRegKey(kszWindowWidth, &_displayWindowWidth, SIZEOF(_displayWindowWidth), fregNil);
+    FGetSetRegKey(kszWindowHeight, &_displayWindowHeight, SIZEOF(_displayWindowHeight), fregNil);
+    if (!DisplaySettings::ValidSize(_displayWindowWidth, _displayWindowHeight))
+        _displayWindowWidth = _displayWindowHeight = 0;
     return fTrue;
 }
 
@@ -830,6 +839,14 @@ bool APP::_FInitOS(void)
     }
 
     _fMainWindowCreated = fTrue;
+    // Establish the windowed size before SDL saves it for fullscreen restoration.
+    SDL_Rect available = {0, 0, 1280, 960};
+    SDL_GetDisplayUsableBounds(SDL_GetWindowDisplayIndex((SDL_Window *)vwig.hwndApp), &available);
+    int top = 0, left = 0, bottom = 0, right = 0;
+    SDL_GetWindowBordersSize((SDL_Window *)vwig.hwndApp, &top, &left, &bottom, &right);
+    auto size = DisplaySettings::FitWindow(_displayWindowWidth, _displayWindowHeight, available.w - left - right,
+                                           available.h - top - bottom);
+    SDL_SetWindowSize((SDL_Window *)vwig.hwndApp, size.width, size.height);
     if (!_fRunInWindow && !_FSetFullscreenMode(fTrue))
         _fRunInWindow = fTrue;
 
@@ -890,6 +907,7 @@ bool APP::_FInitOS(void)
         return fFalse;
 
     ShowWindow(vwig.hwndApp, vwig.wShow);
+    DisplaySettings::AddMenu(vwig.hwndApp);
     _fMainWindowCreated = fTrue;
 #else
     RawRtn();
@@ -906,9 +924,7 @@ bool APP::_FInitOS(void)
 void APP::_GetWindowProps(int32_t *pxp, int32_t *pyp, int32_t *pdxp, int32_t *pdyp, uint32_t *pdwStyle)
 {
 #if defined(KAUAI_WIN32)
-    MONITORINFO monitor = {};
-    monitor.cbSize = sizeof(monitor);
-    GetMonitorInfo(MonitorFromWindow(vwig.hwndApp, MONITOR_DEFAULTTONEAREST), &monitor);
+    auto monitor = DisplaySettings::CurrentMonitor(vwig.hwndApp);
     RECT area = _fRunInWindow ? monitor.rcWork : monitor.rcMonitor;
     *pdwStyle &= ~(WS_POPUP | WS_OVERLAPPEDWINDOW);
     *pdwStyle |= WS_CLIPCHILDREN | (_fRunInWindow ? WS_OVERLAPPEDWINDOW : WS_POPUP);
@@ -916,9 +932,9 @@ void APP::_GetWindowProps(int32_t *pxp, int32_t *pyp, int32_t *pdxp, int32_t *pd
     {
         RECT border = {};
         AdjustWindowRect(&border, *pdwStyle, FALSE);
-        int width = LwMin(1280, (area.right - area.left) * 9 / 10 - (border.right - border.left));
-        int height = LwMin(960, (area.bottom - area.top) * 9 / 10 - (border.bottom - border.top));
-        auto view = Presentation::Fit(width, height);
+        auto view = DisplaySettings::FitWindow(_displayWindowWidth, _displayWindowHeight,
+                                               area.right - area.left - (border.right - border.left),
+                                               area.bottom - area.top - (border.bottom - border.top));
         *pdxp = view.width + border.right - border.left;
         *pdyp = view.height + border.bottom - border.top;
     }
@@ -957,7 +973,21 @@ void APP::_RebuildMainWindow(void)
     _GetWindowProps(&xpWindow, &ypWindow, &dxpWindow, &dypWindow, &dwStyle);
     SetWindowLong(vwig.hwndApp, GWL_STYLE, dwStyle);
     SetWindowPos(vwig.hwndApp, HWND_TOP, xpWindow, ypWindow, dxpWindow, dypWindow, SWP_FRAMECHANGED);
+    DisplaySettings::AddMenu(vwig.hwndApp);
     InvalidateRect(vwig.hwndApp, nullptr, FALSE);
+#elif defined(KAUAI_SDL)
+    if (_fRunInWindow)
+    {
+        SDL_Rect available = {0, 0, 1280, 960};
+        SDL_GetDisplayUsableBounds(SDL_GetWindowDisplayIndex((SDL_Window *)vwig.hwndApp), &available);
+        int top = 0, left = 0, bottom = 0, right = 0;
+        SDL_GetWindowBordersSize((SDL_Window *)vwig.hwndApp, &top, &left, &bottom, &right);
+        auto size = DisplaySettings::FitWindow(_displayWindowWidth, _displayWindowHeight, available.w - left - right,
+                                               available.h - top - bottom);
+        SDL_SetWindowSize((SDL_Window *)vwig.hwndApp, size.width, size.height);
+        SDL_SetWindowPosition((SDL_Window *)vwig.hwndApp, available.x + (available.w - size.width) / 2,
+                              available.y + (available.h - size.height) / 2);
+    }
 #endif // KAUAI_WIN32
 }
 
@@ -1967,6 +1997,7 @@ bool APP::_FInitAcceleratorTable(void)
     AssertDo(_patblGlobal->FAddCmdKey(VK_FROM_ALPHA('I'), fcustCmd | fcustShift, cidInfo), "Could not add hotkey");
     AssertDo(_patblGlobal->FAddCmdKey(VK_FROM_ALPHA('Q'), fcustCmd, cidQuit), "Could not add hotkey");
     AssertDo(_patblGlobal->FAddCmdKey(kvkReturn, fcustOption, cidToggleFullscreen), "Could not add hotkey");
+    AssertDo(_patblGlobal->FAddCmdKey(kvkF11, fcustNil, cidDisplaySettings), "Could not add display settings hotkey");
 
     // Create main accelerator table
     _patblMain = ATBL::PatblNew(HidUnique(), vpcex);
@@ -3285,7 +3316,7 @@ bool APP::FCmdInfo(PCMD pcmd)
     {
         int32_t fSwitchRes = !_fRunInWindow;
 
-        FGetSetRegKey(kszSwitchResolutionValue, &fSwitchRes, SIZEOF(fSwitchRes), fregSetKey);
+        FGetSetRegKey(kszDisplayFullscreen, &fSwitchRes, SIZEOF(fSwitchRes), fregSetKey);
     }
 
 #ifdef DEBUG
@@ -3361,6 +3392,82 @@ bool APP::FCmdInfo(PCMD pcmd)
 /***************************************************************************
     Set fullscreen presentation without changing the desktop display mode.
 ***************************************************************************/
+bool APP::FCmdDisplaySettings(PCMD pcmd)
+{
+    bool fullscreen = !_fRunInWindow;
+    int width = _displayWindowWidth, height = _displayWindowHeight;
+#ifdef KAUAI_WIN32
+    DisplaySettings::DialogState state = {fullscreen, width, height, DisplaySettings::CurrentMonitor(vwig.hwndApp)};
+    INT_PTR result = DialogBoxParam(vwig.hinst, MAKEINTRESOURCE(dlidDisplaySettings), vwig.hwndApp,
+                                    DisplaySettings::DialogProc, reinterpret_cast<LPARAM>(&state));
+    if (result != IDOK)
+    {
+        if (result == -1)
+            TGiveAlertSz(PszLit("Display Settings could not open."), bkOk, cokInformation);
+        return fTrue;
+    }
+    fullscreen = state.fullscreen;
+    width = state.width;
+    height = state.height;
+#elif defined(KAUAI_SDL)
+    SDL_DisplayMode mode = {};
+    SDL_GetDesktopDisplayMode(SDL_GetWindowDisplayIndex((SDL_Window *)vwig.hwndApp), &mode);
+    char message[256];
+    SDL_snprintf(message, sizeof(message),
+                 "Detected display: %d x %d pixels.\nFull screen uses this resolution automatically.\n"
+                 "Your selection will also apply at startup.",
+                 mode.w, mode.h);
+    SDL_MessageBoxButtonData modes[] = {
+        {SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "Cancel"}, {0, 1, "Automatic full screen"}, {0, 2, "Windowed"}};
+    SDL_MessageBoxData dialog = {
+        SDL_MESSAGEBOX_INFORMATION, (SDL_Window *)vwig.hwndApp, "Display Settings", message, 3, modes, nullptr};
+    int selected = 0;
+    if (SDL_ShowMessageBox(&dialog, &selected) != 0 || selected <= 0)
+        return fTrue;
+    fullscreen = selected == 1;
+    if (!fullscreen)
+    {
+        SDL_MessageBoxButtonData sizes[] = {{SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, -1, "Cancel"},
+                                            {0, 0, "Automatic"},
+                                            {0, 1, "640 x 480"},
+                                            {0, 4, "1280 x 720"},
+                                            {0, 7, "1920 x 1080"}};
+        dialog.message = "Choose the window resolution.\nLarge sizes are reduced to fit this display.\n"
+                         "The picture keeps its original 4:3 shape.";
+        dialog.numbuttons = 5;
+        dialog.buttons = sizes;
+        if (SDL_ShowMessageBox(&dialog, &selected) != 0 || selected < 0 || selected >= DisplaySettings::PresetCount)
+            return fTrue;
+        width = DisplaySettings::Presets[selected].width;
+        height = DisplaySettings::Presets[selected].height;
+    }
+#endif
+
+    if (!_FSetRunInWindow(!fullscreen))
+    {
+        TGiveAlertSz(PszLit("The display mode could not change. Your saved settings are unchanged."), bkOk,
+                     cokInformation);
+        return fTrue;
+    }
+    _displayWindowWidth = width;
+    _displayWindowHeight = height;
+#ifdef KAUAI_WIN32
+    // An explicit size selection replaces any previous window placement.
+    _windowPlacement.length = 0;
+    if (_fRunInWindow && IsZoomed(vwig.hwndApp))
+        ShowWindow(vwig.hwndApp, SW_RESTORE);
+#endif
+    _RebuildMainWindow();
+    int32_t savedFullscreen = fullscreen;
+    bool saved = FGetSetRegKey(kszDisplayFullscreen, &savedFullscreen, SIZEOF(savedFullscreen), fregSetKey);
+    saved = FGetSetRegKey(kszWindowWidth, &_displayWindowWidth, SIZEOF(_displayWindowWidth), fregSetKey) && saved;
+    saved = FGetSetRegKey(kszWindowHeight, &_displayWindowHeight, SIZEOF(_displayWindowHeight), fregSetKey) && saved;
+    if (!saved)
+        TGiveAlertSz(PszLit("Display settings were applied, but could not be saved for the next start."), bkOk,
+                     cokInformation);
+    return fTrue;
+}
+
 bool APP::_FSetFullscreenMode(bool fullscreen)
 {
 #if defined(KAUAI_SDL)
@@ -3392,8 +3499,6 @@ bool APP::_FSetRunInWindow(bool fRunInWindowNew)
     if (_fRunInWindow && _windowPlacement.length)
         SetWindowPlacement(vwig.hwndApp, &_windowPlacement);
 #endif
-    int32_t fullscreen = !_fRunInWindow;
-    FGetSetRegKey(kszSwitchResolutionValue, &fullscreen, SIZEOF(fullscreen), fregSetKey);
     return fTrue;
 }
 
@@ -4032,6 +4137,16 @@ bool APP::_FFrameWndProc(HWND hwnd, UINT wm, WPARAM wParam, LPARAM lw, int32_t *
 
     switch (wm)
     {
+    case WM_SYSCOMMAND:
+        if ((wParam & 0xfff0) == DisplaySettings::MenuCommand)
+        {
+            if (vpcex != pvNil)
+                vpcex->EnqueueCid(cidDisplaySettings);
+            *plwRet = 0;
+            return fTrue;
+        }
+        break;
+
     case WM_ERASEBKGND:
         // Tell windows that we handled the Erase so it doesn't do one.
         // In general we don't want to erase our background ahead of time.

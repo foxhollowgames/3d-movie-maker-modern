@@ -139,6 +139,24 @@ BEGIN
                     IDC_STATIC,9,10,165,37
 END
 
+dlidDisplaySettings DIALOGEX 0, 0, 286, 202
+STYLE DS_MODALFRAME | DS_SETFONT | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Display Settings"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT "",IDC_DISPLAY_DETECTED,12,12,262,22
+    GROUPBOX "Display mode",IDC_STATIC,10,39,266,51
+    CONTROL "Full screen - automatic desktop resolution",IDC_DISPLAY_FULLSCREEN,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,20,53,244,12
+    CONTROL "Windowed",IDC_DISPLAY_WINDOWED,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,20,71,244,12
+    LTEXT "Window resolution:",IDC_STATIC,12,101,90,12
+    COMBOBOX IDC_DISPLAY_SIZE,108,98,166,140,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT "",IDC_DISPLAY_PREVIEW,12,121,262,22
+    LTEXT "The picture keeps its 4:3 shape. These settings also apply at startup. Alt+Enter switches modes temporarily.",IDC_STATIC,12,145,262,25
+    PUSHBUTTON "Reset to automatic",IDC_DISPLAY_RESET,12,178,92,16
+    DEFPUSHBUTTON "Save",IDOK,160,178,54,16
+    PUSHBUTTON "Cancel",IDCANCEL,220,178,54,16
+END
+
 dlidInfo DIALOG DISCARDABLE  0, 0, 200, 238
 STYLE DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
 CAPTION "Product Info"
@@ -169,6 +187,7 @@ BEGIN
     CONTROL         "Stereo sound playback (requires restart)",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,120,174,12
     CONTROL         "High quality sound import",IDC_CHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,138,174,12
     CONTROL         "Reduce mouse jitter (experimental)",IDC_CHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,156,174,12
+    LTEXT           "Press F11 for resolution and startup settings.",IDC_STATIC,12,178,174,14
 END
 
 dlidInitFailed DIALOG DISCARDABLE  0, 0, 187, 71

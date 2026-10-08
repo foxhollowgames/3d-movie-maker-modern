@@ -148,6 +148,7 @@
 #define cidSceneThumb 50113
 #define cidQuerySaveDocResult 50114
 #define cidToggleFullscreen 50115
+#define cidDisplaySettings 50116
 
 // Misc Studio Strings
 #define idsBrowserPage 0

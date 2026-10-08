@@ -45,7 +45,8 @@ bool ATBL::FCmdKey(PCMD pcmd)
     // Check if there is a keyboard accelerator that matches this key
     PCMD_KEY pcmdkey = (PCMD_KEY)pcmd;
     int32_t cid;
-    if (_FFindCmdKey(pcmdkey->vk, pcmdkey->grfcust, &cid, pvNil))
+    // Cursor/tool state must not prevent keyboard shortcuts such as F11.
+    if (_FFindCmdKey(pcmdkey->vk, pcmdkey->grfcust & kgrfcustKeys, &cid, pvNil))
     {
         // Enqueue a message with the new command ID
         CMD cmd = *pcmd;

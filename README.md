@@ -34,11 +34,23 @@ Save your movies in a writable folder, such as Documents.
 
 The classic interface scales to fit modern displays, including 1080p, 1440p, 4K, and ultrawide screens.
 It keeps the original 4:3 proportions. A dark theater fabric texture fills unused space around the picture.
-The app starts in fullscreen on every launch. Alt/Option-Enter switches between fullscreen and windowed mode.
+The app detects the current monitor resolution and starts in fullscreen by default.
+Press **F11** to open **Display Settings**. Select automatic fullscreen or a window resolution, then save.
+The app remembers these settings for the next launch. **Reset to automatic** restores fullscreen startup on Windows.
+Alt/Option-Enter temporarily switches between fullscreen and windowed mode without changing the saved startup setting.
 Resize or maximize the window to change the display size in windowed mode.
 Fullscreen uses the current monitor resolution. It does not change the desktop display mode.
 The artwork and movie canvas retain their original 640 by 480 layout and detail.
 On Windows, leaving fullscreen restores the previous window size and position.
+Window sizes that exceed the available display area are reduced to fit.
+Fullscreen always follows the current desktop resolution, including after a display change.
+Resolution settings control presentation size. They do not add detail to the original artwork.
+
+Windows users can also open **Display Settings** from the window's title-bar menu.
+Advanced settings are stored in `%APPDATA%/3DMMEx/3dmovie.ini` on Windows.
+In its `[3dmovie]` section, `displayfullscreen = 1` selects fullscreen startup (`0` selects a window).
+`windowwidth` and `windowheight` set the window's content size in pixels. Set both to `0` for automatic sizing.
+Invalid sizes fall back to automatic sizing. Close the app before editing this file.
 
 ## Build from source
 

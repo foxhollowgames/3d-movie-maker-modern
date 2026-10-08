@@ -13,13 +13,18 @@ Keep the "Microsoft Kids" folder beside the executable.
 No original CD, installer, or administrator access is required.
 
 DISPLAY SIZE
-The app starts in fullscreen on every launch.
-Press Alt/Option-Enter to switch fullscreen mode.
+The app detects the monitor resolution and starts in fullscreen by default.
+Press F11 for Display Settings. Choose fullscreen or a window resolution.
+Save to apply the selection now and at the next launch.
+On Windows, "Reset to automatic" restores the fullscreen default.
+Press Alt/Option-Enter to switch modes without changing the startup setting.
 Resize or maximize the window in windowed mode to fit your screen.
 The picture keeps its original 4:3 proportions.
 A dark theater texture fills unused space on widescreen and portrait displays.
 Fullscreen preserves your desktop resolution, including 1080p, 1440p, and 4K.
 The original artwork is enlarged. Its source detail does not change.
+Oversized window resolutions are reduced to fit the display.
+On Windows, Display Settings is also in the window's title-bar menu.
 
 SAMPLE MOVIES
 Open a movie from "Microsoft Kids/Users/McZee" in the application.

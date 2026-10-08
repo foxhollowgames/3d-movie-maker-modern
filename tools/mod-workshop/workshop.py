@@ -206,7 +206,7 @@ def gui():
     ttk.Label(create, justify='left', wraplength=710, text=(
         'Models: triangulated OBJ, Y-up, up to 10,000 triangles. Use one baked texture with UV coordinates. '
         'MTL files, rigs, and animation are not imported.\n\n'
-        'Textures: PNG, JPG, BMP. Images become opaque palette textures, up to 256 × 256 pixels.\n\n'
+        'Textures: PNG, JPG, BMP. Images become opaque palette textures, up to 256 × 256 pixels. Find them in 3D Words > Patterns & Colors.\n\n'
         'Sounds: WAV, MP3, FLAC, OGG. Up to 90 seconds. Sounds appear in Sound Effects.')).pack(anchor='w', pady=14)
     status = tk.StringVar(value='Close 3D Movie Maker before changing installed mods. Restart it to load new content.')
     def action(fn):
@@ -222,7 +222,7 @@ def gui():
                 pack = Path(temp) / 'asset.3dmm-mod.zip'
                 make_pack(source.get(), pack, name.get() or None, texture.get() or None, float(size.get()))
                 item = install_pack(pack, game.get())
-            status.set(f"Installed {item['name']}. Restart the game. Open Props, Materials, or Sound Effects.")
+            status.set(f"Installed {item['name']}. Restart the game. Open Props, 3D Words > Patterns & Colors, or Sound Effects.")
             refresh()
         else:
             destination = filedialog.asksaveasfilename(defaultextension='.3dmm-mod.zip', initialfile=Path(source.get()).stem + '.3dmm-mod.zip')

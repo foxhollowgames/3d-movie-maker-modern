@@ -9,7 +9,7 @@ The Windows download includes Python and its dependencies.
 2. Put `Mod Workshop.exe` beside `3dmovie.exe`.
 3. Close the game and open Mod Workshop.
 4. Select an asset and click **Import into game**.
-5. Restart the game. Find the asset in **Props**, **Materials**, or **Sound Effects**.
+5. Restart the game. Find the asset in **Props**, **3D Words → Patterns & Colors**, or **Sound Effects**.
 
 Use **Installed mods** to enable, disable, install, or export packs.
 Keep each exported `.3dmm-mod.zip` file. It contains the stable asset ID that saved movies need.
@@ -22,7 +22,7 @@ Creating a new pack from the source asset creates a new ID.
 |---|---|---|
 | Static prop | OBJ | Y-up, triangulated faces, 10,000 triangles, 30,000 vertices after UV seams |
 | Prop texture | PNG/JPG/BMP | One baked texture, selected separately in the OBJ texture field |
-| Paint material | PNG/JPG/BMP | Imported into Materials |
+| 3D text material | PNG/JPG/BMP | Imported into 3D Words → Patterns & Colors |
 | Sound effect | WAV/MP3/FLAC/OGG | Up to 90 seconds, decoded as stereo 16-bit PCM at 44.1 kHz |
 
 Textures use the game's fixed 256-color palette. The converter resizes them to power-of-two dimensions, at most 256 × 256.
